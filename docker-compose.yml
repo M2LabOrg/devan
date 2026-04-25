@@ -1,0 +1,54 @@
+services:
+
+  # ── Main application ────────────────────────────────────────────────────────
+  app:
+    build: .
+    ports:
+      - "${PORT:-5001}:5001"
+    environment:
+      - PORT=5001
+      - OLLAMA_HOST=http://ollama:11434
+      # Optional: set your GitHub Copilot PAT here (or in .env)
+      # - github_copilot_token=your_token_here
+    volumes:
+      # Persist user projects and logs outside the container
+      - ./client/projects:/app/client/projects
+      - ./client/logs:/app/client/logs
+    depends_on:
+      ollama:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # ── Ollama — local LLM runtime ──────────────────────────────────────────────
+  ollama:
+    image: ollama/ollama:latest
+    # Port is intentionally not exposed to the host — the app container
+    # reaches Ollama via the internal Docker network (http://ollama:11434).
+    # This also avoids conflicts if Ollama is already running natively.
+    volumes:
+      - ollama_data:/root/.ollama
+    healthcheck:
+      test: ["CMD", "ollama", "list"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+    restart: unless-stopped
+
+  # ── One-shot init: pulls the chosen model into the shared volume ─────────────
+  # Runs once on `docker compose up`; skips if model is already cached.
+  ollama-init:
+    image: ollama/ollama:latest
+    volumes:
+      - ollama_data:/root/.ollama
+    environment:
+      - OLLAMA_HOST=http://ollama:11434
+      - OLLAMA_MODEL=${OLLAMA_MODEL:-llama3.2:3b}
+    depends_on:
+      ollama:
+        condition: service_healthy
+    entrypoint: ["/bin/sh", "-c", "ollama pull $OLLAMA_MODEL"]
+    restart: "no"
+
+volumes:
+  ollama_data:

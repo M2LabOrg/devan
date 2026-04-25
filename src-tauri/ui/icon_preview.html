@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>DEVAN Icon Preview</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background: #E8E8E8;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      gap: 40px;
+      font-family: system-ui, sans-serif;
+    }
+    .row {
+      display: flex;
+      align-items: flex-end;
+      gap: 32px;
+    }
+    .tile {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+      font-size: 11px;
+      color: #555;
+      letter-spacing: 0.05em;
+    }
+    /* macOS-style rounded rect clip */
+    .icon-wrap {
+      border-radius: 22.4%;
+      overflow: hidden;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.22), 0 1px 4px rgba(0,0,0,0.12);
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Shared owl symbol — referenced by all size previews -->
+  <svg width="0" height="0" style="position:absolute">
+    <defs>
+      <g id="owl-icon">
+        <rect width="512" height="512" fill="#FFFFFF"/>
+        <!-- EAR TUFTS -->
+        <rect x="112" y="40"  width="24" height="24" fill="#6B6880"/>
+        <rect x="100" y="64"  width="48" height="24" fill="#6B6880"/>
+        <rect x="88"  y="88"  width="72" height="24" fill="#6B6880"/>
+        <rect x="376" y="40"  width="24" height="24" fill="#6B6880"/>
+        <rect x="364" y="64"  width="48" height="24" fill="#6B6880"/>
+        <rect x="352" y="88"  width="72" height="24" fill="#6B6880"/>
+        <!-- HEAD -->
+        <rect x="88"  y="88"  width="336" height="168" fill="#6B6880"/>
+        <rect x="88"  y="88"  width="336" height="24"  fill="#5A5870"/>
+        <rect x="88"  y="88"  width="24"  height="168" fill="#5A5870"/>
+        <rect x="400" y="88"  width="24"  height="168" fill="#5A5870"/>
+        <!-- FACIAL DISC -->
+        <rect x="124" y="100" width="264" height="144" fill="#8A87A0"/>
+        <!-- LEFT EYE -->
+        <rect x="124" y="112" width="120" height="96"  fill="#1B1F3B"/>
+        <rect x="136" y="124" width="96"  height="72"  fill="#C9A050"/>
+        <rect x="172" y="136" width="36"  height="36"  fill="#1B1F3B"/>
+        <rect x="136" y="124" width="24"  height="24"  fill="#EEE4CE"/>
+        <!-- RIGHT EYE -->
+        <rect x="268" y="112" width="120" height="96"  fill="#1B1F3B"/>
+        <rect x="280" y="124" width="96"  height="72"  fill="#C9A050"/>
+        <rect x="304" y="136" width="36"  height="36"  fill="#1B1F3B"/>
+        <rect x="280" y="124" width="24"  height="24"  fill="#EEE4CE"/>
+        <!-- BEAK -->
+        <rect x="232" y="172" width="48"  height="36"  fill="#C9A050"/>
+        <rect x="238" y="196" width="36"  height="24"  fill="#B8903E"/>
+        <!-- BODY -->
+        <rect x="112" y="256" width="288" height="144" fill="#6B6880"/>
+        <rect x="112" y="256" width="288" height="24"  fill="#5A5870"/>
+        <rect x="112" y="256" width="24"  height="144" fill="#5A5870"/>
+        <rect x="376" y="256" width="24"  height="144" fill="#5A5870"/>
+        <!-- CHEST -->
+        <rect x="208" y="268" width="96"  height="24"  fill="#E8DDD0"/>
+        <rect x="184" y="292" width="144" height="24"  fill="#E8DDD0"/>
+        <rect x="160" y="316" width="192" height="24"  fill="#E8DDD0"/>
+        <rect x="184" y="340" width="144" height="24"  fill="#E8DDD0"/>
+        <rect x="208" y="364" width="96"  height="24"  fill="#E8DDD0"/>
+        <!-- WING ACCENTS -->
+        <rect x="88"  y="256" width="36"  height="120" fill="#4E4C60"/>
+        <rect x="388" y="256" width="36"  height="120" fill="#4E4C60"/>
+        <!-- TALONS -->
+        <rect x="136" y="400" width="72"  height="24"  fill="#C9A050"/>
+        <rect x="112" y="424" width="32"  height="24"  fill="#C9A050"/>
+        <rect x="148" y="424" width="32"  height="24"  fill="#C9A050"/>
+        <rect x="304" y="400" width="72"  height="24"  fill="#C9A050"/>
+        <rect x="368" y="424" width="32"  height="24"  fill="#C9A050"/>
+        <rect x="332" y="424" width="32"  height="24"  fill="#C9A050"/>
+        <!-- BRANCH -->
+        <rect x="64"  y="448" width="384" height="24"  fill="#5A4030"/>
+      </g>
+    </defs>
+  </svg>
+
+  <div class="row">
+
+    <!-- 512×512 preview -->
+    <div class="tile">
+      <div class="icon-wrap" style="width:192px;height:192px">
+        <svg viewBox="0 0 512 512" width="192" height="192"
+             fill="none" xmlns="http://www.w3.org/2000/svg"
+             shape-rendering="crispEdges">
+
+          <!--
+            Exact splash-screen owl, scaled ×2 (P=24), centred on 512×512 white.
+            Source: viewBox 0 0 192 216, ox=64, oy=40
+          -->
+          <rect width="512" height="512" fill="#FFFFFF"/>
+          <!-- EAR TUFTS -->
+          <rect x="112" y="40"  width="24" height="24" fill="#6B6880"/>
+          <rect x="100" y="64"  width="48" height="24" fill="#6B6880"/>
+          <rect x="88"  y="88"  width="72" height="24" fill="#6B6880"/>
+          <rect x="376" y="40"  width="24" height="24" fill="#6B6880"/>
+          <rect x="364" y="64"  width="48" height="24" fill="#6B6880"/>
+          <rect x="352" y="88"  width="72" height="24" fill="#6B6880"/>
+          <!-- HEAD -->
+          <rect x="88"  y="88"  width="336" height="168" fill="#6B6880"/>
+          <rect x="88"  y="88"  width="336" height="24"  fill="#5A5870"/>
+          <rect x="88"  y="88"  width="24"  height="168" fill="#5A5870"/>
+          <rect x="400" y="88"  width="24"  height="168" fill="#5A5870"/>
+          <!-- FACIAL DISC -->
+          <rect x="124" y="100" width="264" height="144" fill="#8A87A0"/>
+          <!-- LEFT EYE -->
+          <rect x="124" y="112" width="120" height="96"  fill="#1B1F3B"/>
+          <rect x="136" y="124" width="96"  height="72"  fill="#C9A050"/>
+          <rect x="172" y="136" width="36"  height="36"  fill="#1B1F3B"/>
+          <rect x="136" y="124" width="24"  height="24"  fill="#EEE4CE"/>
+          <!-- RIGHT EYE -->
+          <rect x="268" y="112" width="120" height="96"  fill="#1B1F3B"/>
+          <rect x="280" y="124" width="96"  height="72"  fill="#C9A050"/>
+          <rect x="304" y="136" width="36"  height="36"  fill="#1B1F3B"/>
+          <rect x="280" y="124" width="24"  height="24"  fill="#EEE4CE"/>
+          <!-- BEAK -->
+          <rect x="232" y="172" width="48"  height="36"  fill="#C9A050"/>
+          <rect x="238" y="196" width="36"  height="24"  fill="#B8903E"/>
+          <!-- BODY -->
+          <rect x="112" y="256" width="288" height="144" fill="#6B6880"/>
+          <rect x="112" y="256" width="288" height="24"  fill="#5A5870"/>
+          <rect x="112" y="256" width="24"  height="144" fill="#5A5870"/>
+          <rect x="376" y="256" width="24"  height="144" fill="#5A5870"/>
+          <!-- CHEST -->
+          <rect x="208" y="268" width="96"  height="24"  fill="#E8DDD0"/>
+          <rect x="184" y="292" width="144" height="24"  fill="#E8DDD0"/>
+          <rect x="160" y="316" width="192" height="24"  fill="#E8DDD0"/>
+          <rect x="184" y="340" width="144" height="24"  fill="#E8DDD0"/>
+          <rect x="208" y="364" width="96"  height="24"  fill="#E8DDD0"/>
+          <!-- WING ACCENTS -->
+          <rect x="88"  y="256" width="36"  height="120" fill="#4E4C60"/>
+          <rect x="388" y="256" width="36"  height="120" fill="#4E4C60"/>
+          <!-- TALONS -->
+          <rect x="136" y="400" width="72"  height="24"  fill="#C9A050"/>
+          <rect x="112" y="424" width="32"  height="24"  fill="#C9A050"/>
+          <rect x="148" y="424" width="32"  height="24"  fill="#C9A050"/>
+          <rect x="304" y="400" width="72"  height="24"  fill="#C9A050"/>
+          <rect x="368" y="424" width="32"  height="24"  fill="#C9A050"/>
+          <rect x="332" y="424" width="32"  height="24"  fill="#C9A050"/>
+          <!-- BRANCH -->
+          <rect x="64"  y="448" width="384" height="24"  fill="#5A4030"/>
+
+        </svg>
+      </div>
+      512 × 512
+    </div>
+
+    <!-- 128×128 simulation -->
+    <div class="tile">
+      <div class="icon-wrap" style="width:128px;height:128px">
+        <svg viewBox="0 0 512 512" width="128" height="128"
+             fill="none" xmlns="http://www.w3.org/2000/svg"
+             shape-rendering="crispEdges">
+          <use href="#owl-icon"/>
+        </svg>
+      </div>
+      128 × 128
+    </div>
+
+    <!-- 32×32 simulation -->
+    <div class="tile">
+      <div class="icon-wrap" style="width:64px;height:64px">
+        <svg viewBox="0 0 512 512" width="64" height="64"
+             fill="none" xmlns="http://www.w3.org/2000/svg"
+             shape-rendering="crispEdges">
+          <use href="#owl-icon"/>
+        </svg>
+      </div>
+      32 × 32
+    </div>
+
+    <!-- 16×16 simulation -->
+    <div class="tile">
+      <div class="icon-wrap" style="width:32px;height:32px">
+        <svg viewBox="0 0 512 512" width="32" height="32"
+             fill="none" xmlns="http://www.w3.org/2000/svg"
+             shape-rendering="crispEdges">
+          <use href="#owl-icon"/>
+        </svg>
+      </div>
+      16 × 16
+    </div>
+
+  </div>
+
+  <p style="font-size:11px;color:#888;letter-spacing:0.05em">DEVAN Agent — App Icon Preview</p>
+
+</body>
+</html>

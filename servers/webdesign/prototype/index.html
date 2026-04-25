@@ -1,0 +1,1355 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>WebDesign MCP — 禅 Zen Interface</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Noto+Sans+JP:wght@300;400;500;600&family=Noto+Serif+JP:wght@300;400;500&display=swap" rel="stylesheet">
+  <style>
+    /* ═══════════════════════════════════════════
+       ZEN DESIGN SYSTEM — 間 (Ma) First
+       Japanese minimalist, search-centric UI
+       ═══════════════════════════════════════════ */
+
+    :root {
+      /* Ink & Paper */
+      --ink:        #1a1a2e;
+      --ink-light:  #3d3d56;
+      --ink-muted:  #8888a0;
+      --paper:      #fafaf8;
+      --paper-warm: #f5f4f0;
+      --paper-cool: #f0f1f5;
+
+      /* Accents — subtle, intentional */
+      --accent:     #c0392b;   /* Vermilion — torii red */
+      --accent-soft:#e8d5c4;   /* Warm beige */
+      --accent-ink: #2d4a3e;   /* Deep forest */
+
+      /* Functional */
+      --success:    #2d6a4f;
+      --warning:    #e9c46a;
+      --info:       #457b9d;
+
+      /* Surfaces */
+      --glass:      rgba(250, 250, 248, 0.85);
+      --glass-border: rgba(26, 26, 46, 0.06);
+      --shadow-sm:  0 1px 3px rgba(26, 26, 46, 0.04);
+      --shadow-md:  0 4px 20px rgba(26, 26, 46, 0.06);
+      --shadow-lg:  0 8px 40px rgba(26, 26, 46, 0.08);
+      --shadow-glow:0 0 60px rgba(192, 57, 43, 0.06);
+
+      /* Typography */
+      --font-sans: 'Inter', 'Noto Sans JP', system-ui, sans-serif;
+      --font-serif: 'Noto Serif JP', Georgia, serif;
+
+      /* Spacing — based on 8px grid */
+      --space-1: 0.25rem;
+      --space-2: 0.5rem;
+      --space-3: 0.75rem;
+      --space-4: 1rem;
+      --space-6: 1.5rem;
+      --space-8: 2rem;
+      --space-12: 3rem;
+      --space-16: 4rem;
+      --space-24: 6rem;
+
+      /* Transitions */
+      --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+      --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+      --duration-fast: 150ms;
+      --duration-normal: 300ms;
+      --duration-slow: 500ms;
+
+      /* Border radius */
+      --radius-sm: 6px;
+      --radius-md: 12px;
+      --radius-lg: 20px;
+      --radius-xl: 28px;
+      --radius-full: 9999px;
+    }
+
+    /* ── Reset ── */
+    *, *::before, *::after {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    /* ── Base ── */
+    html {
+      font-size: 16px;
+      scroll-behavior: smooth;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+
+    body {
+      font-family: var(--font-sans);
+      background: var(--paper);
+      color: var(--ink);
+      min-height: 100vh;
+      overflow-x: hidden;
+      position: relative;
+    }
+
+    /* ── Background texture — subtle washi paper ── */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background:
+        radial-gradient(ellipse 80% 50% at 50% -20%, rgba(192, 57, 43, 0.03), transparent),
+        radial-gradient(ellipse 60% 40% at 80% 100%, rgba(45, 74, 62, 0.03), transparent);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* ── Vertical rhythm line — like ruled paper ── */
+    body::after {
+      content: '';
+      position: fixed;
+      top: 0;
+      left: 50%;
+      width: 1px;
+      height: 100vh;
+      background: linear-gradient(
+        to bottom,
+        transparent 0%,
+        rgba(26, 26, 46, 0.04) 20%,
+        rgba(26, 26, 46, 0.04) 80%,
+        transparent 100%
+      );
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* ═══════════════════════════════
+       THE COMMAND BAR — 命令
+       Heart of the interface
+       ═══════════════════════════════ */
+
+    .zen-container {
+      position: relative;
+      z-index: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+      padding: var(--space-8) var(--space-4);
+    }
+
+    /* Small branding — barely there */
+    .zen-mark {
+      margin-top: var(--space-12);
+      margin-bottom: var(--space-16);
+      text-align: center;
+      opacity: 0;
+      animation: fadeUp 0.8s var(--ease-out) 0.2s forwards;
+    }
+
+    .zen-mark .kanji {
+      font-family: var(--font-serif);
+      font-size: 1.5rem;
+      font-weight: 300;
+      color: var(--ink-muted);
+      letter-spacing: 0.3em;
+      display: block;
+      margin-bottom: var(--space-2);
+    }
+
+    .zen-mark .subtitle {
+      font-size: 0.7rem;
+      font-weight: 400;
+      color: var(--ink-muted);
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+    }
+
+    /* ── Command Bar Wrapper ── */
+    .command-bar-wrapper {
+      width: 100%;
+      max-width: 680px;
+      position: relative;
+      opacity: 0;
+      animation: fadeUp 0.8s var(--ease-out) 0.4s forwards;
+    }
+
+    /* ── The Search Bar itself ── */
+    .command-bar {
+      position: relative;
+      width: 100%;
+      background: var(--glass);
+      backdrop-filter: blur(20px) saturate(1.2);
+      -webkit-backdrop-filter: blur(20px) saturate(1.2);
+      border: 1px solid var(--glass-border);
+      border-radius: var(--radius-xl);
+      box-shadow: var(--shadow-md);
+      transition: all var(--duration-normal) var(--ease-out);
+      overflow: hidden;
+    }
+
+    .command-bar:hover {
+      box-shadow: var(--shadow-lg);
+      border-color: rgba(26, 26, 46, 0.1);
+    }
+
+    .command-bar.active {
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-lg), var(--shadow-glow);
+      border-color: rgba(192, 57, 43, 0.12);
+    }
+
+    /* ── Input row ── */
+    .command-input-row {
+      display: flex;
+      align-items: center;
+      padding: var(--space-4) var(--space-6);
+      gap: var(--space-3);
+    }
+
+    .command-icon {
+      flex-shrink: 0;
+      width: 20px;
+      height: 20px;
+      color: var(--ink-muted);
+      transition: color var(--duration-fast) var(--ease-out);
+    }
+
+    .command-bar.active .command-icon {
+      color: var(--accent);
+    }
+
+    .command-input {
+      flex: 1;
+      border: none;
+      outline: none;
+      background: transparent;
+      font-family: var(--font-sans);
+      font-size: 1rem;
+      font-weight: 400;
+      color: var(--ink);
+      letter-spacing: -0.01em;
+    }
+
+    .command-input::placeholder {
+      color: var(--ink-muted);
+      font-weight: 300;
+    }
+
+    .command-shortcut {
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      opacity: 0.4;
+      transition: opacity var(--duration-fast);
+    }
+
+    .command-bar:hover .command-shortcut {
+      opacity: 0.6;
+    }
+
+    .kbd {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 2px 6px;
+      font-family: var(--font-sans);
+      font-size: 0.65rem;
+      font-weight: 500;
+      color: var(--ink-muted);
+      background: var(--paper-cool);
+      border: 1px solid rgba(26, 26, 46, 0.08);
+      border-radius: 4px;
+      line-height: 1;
+    }
+
+    /* ── Expandable Action Chips ── */
+    .command-actions {
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height var(--duration-slow) var(--ease-out),
+                  opacity var(--duration-normal) var(--ease-out);
+      opacity: 0;
+    }
+
+    .command-bar.active .command-actions {
+      max-height: 400px;
+      opacity: 1;
+    }
+
+    .action-divider {
+      height: 1px;
+      background: linear-gradient(
+        to right,
+        transparent,
+        rgba(26, 26, 46, 0.06) 20%,
+        rgba(26, 26, 46, 0.06) 80%,
+        transparent
+      );
+      margin: 0 var(--space-6);
+    }
+
+    .action-categories {
+      padding: var(--space-4) var(--space-6) var(--space-6);
+    }
+
+    .action-category {
+      margin-bottom: var(--space-4);
+    }
+
+    .action-category:last-child {
+      margin-bottom: 0;
+    }
+
+    .action-category-label {
+      font-size: 0.6rem;
+      font-weight: 500;
+      color: var(--ink-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.15em;
+      margin-bottom: var(--space-2);
+      padding-left: var(--space-1);
+    }
+
+    .action-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--space-2);
+    }
+
+    .action-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--space-2);
+      padding: var(--space-2) var(--space-3);
+      background: var(--paper-warm);
+      border: 1px solid transparent;
+      border-radius: var(--radius-full);
+      font-family: var(--font-sans);
+      font-size: 0.8rem;
+      font-weight: 400;
+      color: var(--ink-light);
+      cursor: pointer;
+      transition: all var(--duration-fast) var(--ease-out);
+      user-select: none;
+    }
+
+    .action-chip:hover {
+      background: white;
+      border-color: rgba(26, 26, 46, 0.08);
+      box-shadow: var(--shadow-sm);
+      color: var(--ink);
+      transform: translateY(-1px);
+    }
+
+    .action-chip.active {
+      background: var(--ink);
+      color: white;
+      border-color: var(--ink);
+    }
+
+    .action-chip .chip-icon {
+      width: 14px;
+      height: 14px;
+      opacity: 0.7;
+    }
+
+    .action-chip.active .chip-icon {
+      opacity: 1;
+    }
+
+    /* Quick action items (like command palette rows) */
+    .quick-actions {
+      padding: 0 var(--space-6) var(--space-4);
+    }
+
+    .quick-action {
+      display: flex;
+      align-items: center;
+      gap: var(--space-3);
+      padding: var(--space-3) var(--space-3);
+      border-radius: var(--radius-md);
+      cursor: pointer;
+      transition: all var(--duration-fast) var(--ease-out);
+    }
+
+    .quick-action:hover {
+      background: var(--paper-warm);
+    }
+
+    .quick-action .qa-icon {
+      width: 16px;
+      height: 16px;
+      color: var(--ink-muted);
+    }
+
+    .quick-action .qa-label {
+      flex: 1;
+      font-size: 0.85rem;
+      color: var(--ink-light);
+    }
+
+    .quick-action .qa-hint {
+      font-size: 0.7rem;
+      color: var(--ink-muted);
+    }
+
+    /* ═══════════════════════════════
+       RESULTS AREA — 結果
+       Floating cards with content
+       ═══════════════════════════════ */
+
+    .results-area {
+      width: 100%;
+      max-width: 900px;
+      margin-top: var(--space-12);
+      opacity: 0;
+      animation: fadeUp 0.8s var(--ease-out) 0.6s forwards;
+    }
+
+    /* Section header — minimal */
+    .results-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: var(--space-6);
+      padding: 0 var(--space-2);
+    }
+
+    .results-title {
+      font-family: var(--font-serif);
+      font-size: 0.8rem;
+      font-weight: 400;
+      color: var(--ink-muted);
+      letter-spacing: 0.1em;
+    }
+
+    .results-count {
+      font-size: 0.7rem;
+      color: var(--ink-muted);
+      font-weight: 300;
+    }
+
+    /* ── Result Cards Grid ── */
+    .results-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+      gap: var(--space-4);
+    }
+
+    /* ── Individual Result Card ── */
+    .result-card {
+      background: white;
+      border: 1px solid var(--glass-border);
+      border-radius: var(--radius-lg);
+      padding: var(--space-6);
+      cursor: pointer;
+      transition: all var(--duration-normal) var(--ease-out);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .result-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: transparent;
+      transition: background var(--duration-normal) var(--ease-out);
+    }
+
+    .result-card:hover {
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-lg);
+      border-color: rgba(26, 26, 46, 0.08);
+    }
+
+    .result-card:hover::before {
+      background: linear-gradient(90deg, var(--accent), transparent);
+    }
+
+    .result-card .card-tag {
+      display: inline-block;
+      font-size: 0.6rem;
+      font-weight: 500;
+      color: var(--ink-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      margin-bottom: var(--space-3);
+    }
+
+    .result-card .card-title {
+      font-size: 1.05rem;
+      font-weight: 500;
+      color: var(--ink);
+      margin-bottom: var(--space-2);
+      line-height: 1.3;
+    }
+
+    .result-card .card-desc {
+      font-size: 0.82rem;
+      font-weight: 300;
+      color: var(--ink-light);
+      line-height: 1.6;
+      margin-bottom: var(--space-4);
+    }
+
+    .result-card .card-meta {
+      display: flex;
+      align-items: center;
+      gap: var(--space-3);
+    }
+
+    .card-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 3px 10px;
+      background: var(--paper-warm);
+      border-radius: var(--radius-full);
+      font-size: 0.65rem;
+      font-weight: 500;
+      color: var(--ink-muted);
+    }
+
+    .card-badge.accent {
+      background: rgba(192, 57, 43, 0.06);
+      color: var(--accent);
+    }
+
+    /* ── Featured / Large Card ── */
+    .result-card.featured {
+      grid-column: 1 / -1;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: var(--space-8);
+      padding: var(--space-8);
+    }
+
+    .result-card.featured .card-visual {
+      background: var(--paper-warm);
+      border-radius: var(--radius-md);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 200px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .card-visual-inner {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: var(--space-3);
+    }
+
+    .card-visual .palette-row {
+      display: flex;
+      gap: var(--space-2);
+    }
+
+    .palette-dot {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      transition: transform var(--duration-fast) var(--ease-spring);
+    }
+
+    .palette-dot:hover {
+      transform: scale(1.2);
+    }
+
+    /* ═══════════════════════════════
+       ACTION BUTTONS — 行動
+       Floating, contextual
+       ═══════════════════════════════ */
+
+    .action-bar {
+      position: fixed;
+      bottom: var(--space-8);
+      left: 50%;
+      transform: translateX(-50%) translateY(80px);
+      display: flex;
+      align-items: center;
+      gap: var(--space-2);
+      padding: var(--space-2);
+      background: var(--glass);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid var(--glass-border);
+      border-radius: var(--radius-full);
+      box-shadow: var(--shadow-lg);
+      z-index: 100;
+      opacity: 0;
+      transition: all var(--duration-slow) var(--ease-out);
+    }
+
+    .action-bar.visible {
+      transform: translateX(-50%) translateY(0);
+      opacity: 1;
+    }
+
+    .action-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--space-2);
+      padding: var(--space-3) var(--space-4);
+      border: none;
+      border-radius: var(--radius-full);
+      font-family: var(--font-sans);
+      font-size: 0.8rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all var(--duration-fast) var(--ease-out);
+      background: transparent;
+      color: var(--ink-light);
+    }
+
+    .action-btn:hover {
+      background: var(--paper-warm);
+      color: var(--ink);
+    }
+
+    .action-btn.primary {
+      background: var(--ink);
+      color: white;
+    }
+
+    .action-btn.primary:hover {
+      background: var(--ink-light);
+    }
+
+    .action-btn .btn-icon {
+      width: 16px;
+      height: 16px;
+    }
+
+    /* ═══════════════════════════════
+       DETAIL PANEL — 詳細
+       Slides up from card click
+       ═══════════════════════════════ */
+
+    .detail-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(26, 26, 46, 0.2);
+      backdrop-filter: blur(4px);
+      -webkit-backdrop-filter: blur(4px);
+      z-index: 200;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity var(--duration-normal) var(--ease-out);
+    }
+
+    .detail-overlay.active {
+      opacity: 1;
+      pointer-events: all;
+    }
+
+    .detail-panel {
+      position: fixed;
+      bottom: 0;
+      left: 50%;
+      transform: translateX(-50%) translateY(100%);
+      width: 100%;
+      max-width: 720px;
+      max-height: 85vh;
+      background: white;
+      border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+      box-shadow: 0 -10px 60px rgba(26, 26, 46, 0.12);
+      z-index: 201;
+      overflow-y: auto;
+      transition: transform var(--duration-slow) var(--ease-out);
+    }
+
+    .detail-panel.active {
+      transform: translateX(-50%) translateY(0);
+    }
+
+    .detail-handle {
+      display: flex;
+      justify-content: center;
+      padding: var(--space-3) 0;
+      cursor: pointer;
+    }
+
+    .detail-handle span {
+      width: 40px;
+      height: 4px;
+      background: var(--paper-cool);
+      border-radius: var(--radius-full);
+    }
+
+    .detail-content {
+      padding: var(--space-4) var(--space-8) var(--space-12);
+    }
+
+    .detail-tag {
+      font-size: 0.6rem;
+      font-weight: 500;
+      color: var(--accent);
+      text-transform: uppercase;
+      letter-spacing: 0.15em;
+      margin-bottom: var(--space-3);
+    }
+
+    .detail-title {
+      font-family: var(--font-serif);
+      font-size: 1.8rem;
+      font-weight: 400;
+      color: var(--ink);
+      line-height: 1.3;
+      margin-bottom: var(--space-4);
+    }
+
+    .detail-body {
+      font-size: 0.9rem;
+      font-weight: 300;
+      color: var(--ink-light);
+      line-height: 1.8;
+      margin-bottom: var(--space-8);
+    }
+
+    .detail-section {
+      margin-bottom: var(--space-6);
+    }
+
+    .detail-section-title {
+      font-size: 0.65rem;
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.15em;
+      color: var(--ink-muted);
+      margin-bottom: var(--space-3);
+    }
+
+    .detail-specs {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: var(--space-3);
+    }
+
+    .spec-item {
+      padding: var(--space-3) var(--space-4);
+      background: var(--paper-warm);
+      border-radius: var(--radius-md);
+    }
+
+    .spec-label {
+      font-size: 0.65rem;
+      color: var(--ink-muted);
+      margin-bottom: 2px;
+    }
+
+    .spec-value {
+      font-size: 0.85rem;
+      font-weight: 500;
+      color: var(--ink);
+    }
+
+    .detail-actions {
+      display: flex;
+      gap: var(--space-3);
+      padding-top: var(--space-6);
+      border-top: 1px solid var(--glass-border);
+    }
+
+    /* ═══════════════════════════════
+       TOAST NOTIFICATIONS — 通知
+       ═══════════════════════════════ */
+
+    .toast {
+      position: fixed;
+      top: var(--space-6);
+      right: var(--space-6);
+      padding: var(--space-3) var(--space-4);
+      background: var(--ink);
+      color: white;
+      font-size: 0.8rem;
+      font-weight: 400;
+      border-radius: var(--radius-md);
+      box-shadow: var(--shadow-lg);
+      z-index: 300;
+      transform: translateX(120%);
+      transition: transform var(--duration-normal) var(--ease-out);
+    }
+
+    .toast.visible {
+      transform: translateX(0);
+    }
+
+    /* ═══════════════════════════════
+       ANIMATIONS — 動き
+       ═══════════════════════════════ */
+
+    @keyframes fadeUp {
+      from {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes breathe {
+      0%, 100% { opacity: 0.4; }
+      50% { opacity: 0.8; }
+    }
+
+    /* ── Status indicator ── */
+    .status-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--success);
+      animation: breathe 3s ease-in-out infinite;
+    }
+
+    /* ═══════════════════════════════
+       RESPONSIVE — 応答
+       ═══════════════════════════════ */
+
+    @media (max-width: 640px) {
+      .zen-mark { margin-top: var(--space-8); margin-bottom: var(--space-8); }
+      .command-input-row { padding: var(--space-3) var(--space-4); }
+      .results-grid { grid-template-columns: 1fr; }
+      .result-card.featured { grid-template-columns: 1fr; }
+      .detail-panel { max-width: 100%; }
+      .detail-content { padding: var(--space-4) var(--space-4) var(--space-8); }
+      .action-bar { width: calc(100% - var(--space-8)); }
+    }
+
+    /* ── Scrollbar — barely visible ── */
+    ::-webkit-scrollbar { width: 4px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: rgba(26, 26, 46, 0.1); border-radius: var(--radius-full); }
+  </style>
+</head>
+<body>
+
+  <div class="zen-container">
+
+    <!-- ── Brand Mark ── -->
+    <div class="zen-mark">
+      <span class="kanji">設計</span>
+      <span class="subtitle">WebDesign MCP</span>
+    </div>
+
+    <!-- ══════════════════════════════════
+         COMMAND BAR — The single entry point
+         ══════════════════════════════════ -->
+    <div class="command-bar-wrapper">
+      <div class="command-bar" id="commandBar">
+        <div class="command-input-row">
+          <!-- Search icon -->
+          <svg class="command-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="11" cy="11" r="8"/>
+            <path d="m21 21-4.35-4.35"/>
+          </svg>
+
+          <input
+            class="command-input"
+            id="commandInput"
+            type="text"
+            placeholder="Design something beautiful..."
+            autocomplete="off"
+            spellcheck="false"
+          />
+
+          <div class="command-shortcut">
+            <span class="kbd">⌘</span>
+            <span class="kbd">K</span>
+          </div>
+        </div>
+
+        <!-- ── Expandable Action Area ── -->
+        <div class="command-actions">
+          <div class="action-divider"></div>
+
+          <div class="action-categories">
+            <!-- Create -->
+            <div class="action-category">
+              <div class="action-category-label">Create</div>
+              <div class="action-chips">
+                <button class="action-chip" data-action="landing">
+                  <svg class="chip-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18"/></svg>
+                  Landing Page
+                </button>
+                <button class="action-chip" data-action="corporate">
+                  <svg class="chip-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z"/><path d="M6 12H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2"/><path d="M18 9h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-2"/></svg>
+                  Corporate Site
+                </button>
+                <button class="action-chip" data-action="portfolio">
+                  <svg class="chip-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="6" width="20" height="12" rx="2"/><path d="M12 12h.01"/></svg>
+                  Portfolio
+                </button>
+                <button class="action-chip" data-action="dashboard">
+                  <svg class="chip-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+                  Dashboard
+                </button>
+                <button class="action-chip" data-action="ecommerce">
+                  <svg class="chip-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"/></svg>
+                  E-Commerce
+                </button>
+                <button class="action-chip" data-action="docs">
+                  <svg class="chip-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/></svg>
+                  Documentation
+                </button>
+              </div>
+            </div>
+
+            <!-- Style -->
+            <div class="action-category">
+              <div class="action-category-label">Style</div>
+              <div class="action-chips">
+                <button class="action-chip" data-palette="corporate">
+                  <span style="width:10px;height:10px;border-radius:50%;background:#1E40AF;display:inline-block;"></span>
+                  Corporate
+                </button>
+                <button class="action-chip" data-palette="energy">
+                  <span style="width:10px;height:10px;border-radius:50%;background:#059669;display:inline-block;"></span>
+                  Energy
+                </button>
+                <button class="action-chip" data-palette="dark_modern">
+                  <span style="width:10px;height:10px;border-radius:50%;background:#6366F1;display:inline-block;"></span>
+                  Dark Modern
+                </button>
+                <button class="action-chip" data-palette="minimal">
+                  <span style="width:10px;height:10px;border-radius:50%;background:#18181B;display:inline-block;"></span>
+                  Minimal
+                </button>
+              </div>
+            </div>
+
+            <!-- Tools -->
+            <div class="action-category">
+              <div class="action-category-label">Tools</div>
+              <div class="action-chips">
+                <button class="action-chip" data-tool="tokens">
+                  <svg class="chip-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="3"/><path d="M12 1v6M12 17v6M4.22 4.22l4.24 4.24M15.54 15.54l4.24 4.24M1 12h6M17 12h6M4.22 19.78l4.24-4.24M15.54 8.46l4.24-4.24"/></svg>
+                  Design Tokens
+                </button>
+                <button class="action-chip" data-tool="components">
+                  <svg class="chip-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 2 2 7l10 5 10-5-10-5Z"/><path d="m2 17 10 5 10-5"/><path d="m2 12 10 5 10-5"/></svg>
+                  Components
+                </button>
+                <button class="action-chip" data-tool="scaffold">
+                  <svg class="chip-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/></svg>
+                  Scaffold
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Quick Actions -->
+          <div class="quick-actions" id="quickActions" style="display:none;">
+            <!-- Dynamically populated -->
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════
+         RESULTS — Displayed below the bar
+         ══════════════════════════════════ -->
+    <div class="results-area" id="resultsArea">
+      <div class="results-header">
+        <span class="results-title" id="resultsTitle">Recent Projects</span>
+        <span class="results-count" id="resultsCount">6 items</span>
+      </div>
+
+      <div class="results-grid" id="resultsGrid">
+        <!-- Featured card -->
+        <div class="result-card featured" onclick="openDetail('featured')">
+          <div>
+            <span class="card-tag">Recommended</span>
+            <h3 class="card-title">Quick Start — Describe your vision and let AI design it</h3>
+            <p class="card-desc">Type a project description in the command bar above. The system will analyze your needs, suggest a template, color palette, and generate a complete React scaffold.</p>
+            <div class="card-meta">
+              <span class="card-badge accent">AI-Powered</span>
+              <span class="card-badge">React + Tailwind</span>
+              <span class="card-badge">TypeScript</span>
+            </div>
+          </div>
+          <div class="card-visual">
+            <div class="card-visual-inner">
+              <div class="palette-row">
+                <span class="palette-dot" style="background:#1E40AF"></span>
+                <span class="palette-dot" style="background:#059669"></span>
+                <span class="palette-dot" style="background:#6366F1"></span>
+                <span class="palette-dot" style="background:#18181B"></span>
+              </div>
+              <div style="font-size:0.7rem; color:var(--ink-muted); margin-top:var(--space-2);">4 design palettes available</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Template cards -->
+        <div class="result-card" onclick="openDetail('landing')">
+          <span class="card-tag">Template</span>
+          <h3 class="card-title">Landing Page</h3>
+          <p class="card-desc">Single-page marketing site with hero, features, testimonials, and call-to-action sections.</p>
+          <div class="card-meta">
+            <span class="card-badge">1 page</span>
+            <span class="card-badge">6 sections</span>
+          </div>
+        </div>
+
+        <div class="result-card" onclick="openDetail('corporate')">
+          <span class="card-tag">Template</span>
+          <h3 class="card-title">Corporate Site</h3>
+          <p class="card-desc">Multi-page business website with about, services, team, and contact pages.</p>
+          <div class="card-meta">
+            <span class="card-badge">6 pages</span>
+            <span class="card-badge">Professional</span>
+          </div>
+        </div>
+
+        <div class="result-card" onclick="openDetail('portfolio')">
+          <span class="card-tag">Template</span>
+          <h3 class="card-title">Portfolio</h3>
+          <p class="card-desc">Showcase creative work with gallery, case studies, and elegant presentation.</p>
+          <div class="card-meta">
+            <span class="card-badge">5 pages</span>
+            <span class="card-badge">Gallery</span>
+          </div>
+        </div>
+
+        <div class="result-card" onclick="openDetail('dashboard')">
+          <span class="card-tag">Template</span>
+          <h3 class="card-title">Dashboard</h3>
+          <p class="card-desc">Data visualization interface with charts, tables, filters, and analytics views.</p>
+          <div class="card-meta">
+            <span class="card-badge">5 pages</span>
+            <span class="card-badge">Data-heavy</span>
+          </div>
+        </div>
+
+        <div class="result-card" onclick="openDetail('ecommerce')">
+          <span class="card-tag">Template</span>
+          <h3 class="card-title">E-Commerce</h3>
+          <p class="card-desc">Product catalog with shopping cart, checkout flow, and user accounts.</p>
+          <div class="card-meta">
+            <span class="card-badge">6 pages</span>
+            <span class="card-badge">Transactional</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════
+       FLOATING ACTION BAR
+       ══════════════════════════════════ -->
+  <div class="action-bar" id="actionBar">
+    <button class="action-btn" onclick="showToast('Specifications exported')">
+      <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+      Export
+    </button>
+    <button class="action-btn" onclick="showToast('Preview opening...')">
+      <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+      Preview
+    </button>
+    <button class="action-btn primary" onclick="showToast('Scaffold generated!')">
+      <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
+      Generate
+    </button>
+  </div>
+
+  <!-- ══════════════════════════════════
+       DETAIL PANEL — Slides up
+       ══════════════════════════════════ -->
+  <div class="detail-overlay" id="detailOverlay" onclick="closeDetail()"></div>
+  <div class="detail-panel" id="detailPanel">
+    <div class="detail-handle" onclick="closeDetail()"><span></span></div>
+    <div class="detail-content">
+      <div class="detail-tag" id="detailTag">Template</div>
+      <h2 class="detail-title" id="detailTitle">Landing Page</h2>
+      <p class="detail-body" id="detailBody">
+        A single-page marketing site optimized for conversion. Includes hero section, feature grid, social proof through testimonials, pricing comparison, FAQ accordion, and a strong call-to-action banner.
+      </p>
+
+      <div class="detail-section">
+        <div class="detail-section-title">Specifications</div>
+        <div class="detail-specs" id="detailSpecs">
+          <div class="spec-item">
+            <div class="spec-label">Pages</div>
+            <div class="spec-value">1</div>
+          </div>
+          <div class="spec-item">
+            <div class="spec-label">Sections</div>
+            <div class="spec-value">7</div>
+          </div>
+          <div class="spec-item">
+            <div class="spec-label">Components</div>
+            <div class="spec-value">6</div>
+          </div>
+          <div class="spec-item">
+            <div class="spec-label">Stack</div>
+            <div class="spec-value">React + Vite</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="detail-section">
+        <div class="detail-section-title">Included Sections</div>
+        <div class="action-chips" id="detailSections">
+          <span class="action-chip">Hero</span>
+          <span class="action-chip">Features</span>
+          <span class="action-chip">Testimonials</span>
+          <span class="action-chip">Pricing</span>
+          <span class="action-chip">FAQ</span>
+          <span class="action-chip">CTA</span>
+          <span class="action-chip">Footer</span>
+        </div>
+      </div>
+
+      <div class="detail-actions">
+        <button class="action-btn" onclick="closeDetail()">
+          Close
+        </button>
+        <button class="action-btn primary" onclick="closeDetail(); showToast('Scaffold generated!')">
+          <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
+          Use This Template
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════
+       TOAST
+       ══════════════════════════════════ -->
+  <div class="toast" id="toast">Action completed</div>
+
+  <!-- ══════════════════════════════════
+       JAVASCRIPT — 動作
+       ══════════════════════════════════ -->
+  <script>
+    // ── State ──
+    const state = {
+      commandActive: false,
+      selectedTemplate: null,
+      selectedPalette: null,
+    };
+
+    // ── Elements ──
+    const commandBar = document.getElementById('commandBar');
+    const commandInput = document.getElementById('commandInput');
+    const actionBar = document.getElementById('actionBar');
+    const resultsArea = document.getElementById('resultsArea');
+    const detailOverlay = document.getElementById('detailOverlay');
+    const detailPanel = document.getElementById('detailPanel');
+    const toast = document.getElementById('toast');
+
+    // ── Template data ──
+    const templates = {
+      featured: {
+        tag: 'Getting Started',
+        title: 'AI-Powered Design Generation',
+        body: 'Describe your project in natural language. The AI will analyze your requirements — target audience, features, and goals — then recommend the perfect template, color palette, and component library. A complete React + TypeScript + Tailwind project is scaffolded in seconds.',
+        specs: [
+          { label: 'Input', value: 'Natural language' },
+          { label: 'Output', value: 'Full project' },
+          { label: 'Templates', value: '6 types' },
+          { label: 'Palettes', value: '4 styles' },
+        ],
+        sections: ['Analyze', 'Design', 'Scaffold', 'Components', 'Deploy']
+      },
+      landing: {
+        tag: 'Template',
+        title: 'Landing Page',
+        body: 'A single-page marketing site optimized for conversion. Includes hero section with strong headline, feature grid showcasing benefits, social proof through testimonials, pricing comparison table, FAQ accordion, and a compelling call-to-action banner. Perfect for product launches and service promotions.',
+        specs: [
+          { label: 'Pages', value: '1' },
+          { label: 'Sections', value: '7' },
+          { label: 'Components', value: '6' },
+          { label: 'Stack', value: 'React + Vite' },
+        ],
+        sections: ['Hero', 'Features', 'Testimonials', 'Pricing', 'FAQ', 'CTA', 'Footer']
+      },
+      corporate: {
+        tag: 'Template',
+        title: 'Corporate Website',
+        body: 'A professional multi-page business website. Includes home page with hero and company overview, about page with story and values, services showcase with detailed offerings, team profiles with photos and roles, careers section, and contact page with form and map integration.',
+        specs: [
+          { label: 'Pages', value: '6' },
+          { label: 'Sections', value: '18' },
+          { label: 'Components', value: '8' },
+          { label: 'Stack', value: 'React + Router' },
+        ],
+        sections: ['Home', 'About', 'Services', 'Team', 'Careers', 'Contact']
+      },
+      portfolio: {
+        tag: 'Template',
+        title: 'Portfolio',
+        body: 'An elegant showcase for creative work. Features a filterable project gallery with smooth animations, detailed case study layouts with image carousels, an about page with skills and experience, and a minimal contact section. Designed for maximum visual impact.',
+        specs: [
+          { label: 'Pages', value: '5' },
+          { label: 'Sections', value: '12' },
+          { label: 'Components', value: '7' },
+          { label: 'Stack', value: 'React + Motion' },
+        ],
+        sections: ['Home', 'Projects', 'Case Studies', 'About', 'Contact']
+      },
+      dashboard: {
+        tag: 'Template',
+        title: 'Dashboard',
+        body: 'A data-rich management interface with overview statistics, interactive charts, sortable data tables, user management views, and configurable report generation. Built for complex data visualization with responsive layouts that work on all screen sizes.',
+        specs: [
+          { label: 'Pages', value: '5' },
+          { label: 'Sections', value: '15' },
+          { label: 'Components', value: '9' },
+          { label: 'Stack', value: 'Next.js' },
+        ],
+        sections: ['Overview', 'Analytics', 'Settings', 'Users', 'Reports']
+      },
+      ecommerce: {
+        tag: 'Template',
+        title: 'E-Commerce',
+        body: 'A complete online store with browsable product catalog, detailed product pages with image galleries, shopping cart with quantity management, multi-step checkout flow, and user account dashboard. Includes search, filtering, and sorting capabilities.',
+        specs: [
+          { label: 'Pages', value: '6' },
+          { label: 'Sections', value: '18' },
+          { label: 'Components', value: '10' },
+          { label: 'Stack', value: 'Next.js' },
+        ],
+        sections: ['Home', 'Products', 'Product Detail', 'Cart', 'Checkout', 'Account']
+      }
+    };
+
+    // ── Command Bar: Focus/Blur ──
+    commandInput.addEventListener('focus', () => {
+      commandBar.classList.add('active');
+      state.commandActive = true;
+    });
+
+    document.addEventListener('click', (e) => {
+      if (!commandBar.contains(e.target)) {
+        commandBar.classList.remove('active');
+        state.commandActive = false;
+      }
+    });
+
+    // ── Keyboard shortcut: ⌘K ──
+    document.addEventListener('keydown', (e) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault();
+        commandInput.focus();
+      }
+      if (e.key === 'Escape') {
+        commandInput.blur();
+        commandBar.classList.remove('active');
+        closeDetail();
+      }
+    });
+
+    // ── Command input: filter/search ──
+    commandInput.addEventListener('input', (e) => {
+      const query = e.target.value.toLowerCase().trim();
+      const cards = document.querySelectorAll('.result-card');
+
+      if (query === '') {
+        cards.forEach(c => c.style.display = '');
+        return;
+      }
+
+      cards.forEach(card => {
+        const text = card.textContent.toLowerCase();
+        card.style.display = text.includes(query) ? '' : 'none';
+      });
+    });
+
+    // ── Action chips ──
+    document.querySelectorAll('.action-chip[data-action]').forEach(chip => {
+      chip.addEventListener('click', () => {
+        commandInput.value = chip.textContent.trim();
+        commandInput.dispatchEvent(new Event('input'));
+        showToast(`Template: ${chip.textContent.trim()}`);
+      });
+    });
+
+    document.querySelectorAll('.action-chip[data-palette]').forEach(chip => {
+      chip.addEventListener('click', () => {
+        document.querySelectorAll('.action-chip[data-palette]').forEach(c => c.classList.remove('active'));
+        chip.classList.add('active');
+        state.selectedPalette = chip.dataset.palette;
+        showToast(`Palette: ${chip.textContent.trim()}`);
+      });
+    });
+
+    document.querySelectorAll('.action-chip[data-tool]').forEach(chip => {
+      chip.addEventListener('click', () => {
+        showToast(`Opening ${chip.textContent.trim()}...`);
+      });
+    });
+
+    // ── Show floating action bar on scroll ──
+    let scrollTimer;
+    window.addEventListener('scroll', () => {
+      if (window.scrollY > 200) {
+        actionBar.classList.add('visible');
+      } else {
+        actionBar.classList.remove('visible');
+      }
+    });
+
+    // Show action bar after a brief delay anyway
+    setTimeout(() => actionBar.classList.add('visible'), 2000);
+
+    // ── Detail panel ──
+    function openDetail(key) {
+      const data = templates[key];
+      if (!data) return;
+
+      document.getElementById('detailTag').textContent = data.tag;
+      document.getElementById('detailTitle').textContent = data.title;
+      document.getElementById('detailBody').textContent = data.body;
+
+      const specsEl = document.getElementById('detailSpecs');
+      specsEl.innerHTML = data.specs.map(s => `
+        <div class="spec-item">
+          <div class="spec-label">${s.label}</div>
+          <div class="spec-value">${s.value}</div>
+        </div>
+      `).join('');
+
+      const sectionsEl = document.getElementById('detailSections');
+      sectionsEl.innerHTML = data.sections.map(s =>
+        `<span class="action-chip">${s}</span>`
+      ).join('');
+
+      detailOverlay.classList.add('active');
+      detailPanel.classList.add('active');
+      document.body.style.overflow = 'hidden';
+    }
+
+    function closeDetail() {
+      detailOverlay.classList.remove('active');
+      detailPanel.classList.remove('active');
+      document.body.style.overflow = '';
+    }
+
+    // ── Toast ──
+    let toastTimer;
+    function showToast(message) {
+      toast.textContent = message;
+      toast.classList.add('visible');
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => toast.classList.remove('visible'), 2500);
+    }
+
+    // ── Entrance: focus command bar on load ──
+    setTimeout(() => {
+      commandInput.focus();
+    }, 1200);
+  </script>
+</body>
+</html>

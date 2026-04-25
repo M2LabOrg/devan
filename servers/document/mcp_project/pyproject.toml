@@ -1,0 +1,35 @@
+[project]
+name = "document-mcp"
+version = "1.0.0"
+description = "Unified Document MCP Server — Excel, PDF, and Word processing for LLM & RAG pipelines"
+requires-python = ">=3.10"
+dependencies = [
+    "mcp>=1.26.0",
+    # Excel
+    "docling>=2.0.0",
+    "pandas>=2.0.0",
+    "openpyxl>=3.1.0",
+    # PDF (pypdf for lightweight page count; docling handles full extraction)
+    "pypdf>=6.10.2",
+    # Word
+    "python-docx>=1.2.0",
+    # AI (OCR + figure descriptions)
+    "anthropic>=0.97.0",
+]
+
+[project.optional-dependencies]
+opensearch = [
+    "opensearch-py>=3.1.0",
+]
+parquet = [
+    "pyarrow>=14.0.0",
+    "pandas>=2.0.0",
+]
+dev = [
+    "pytest>=7.0",
+    "black>=26.3.1",
+    "ruff>=0.1.0",
+]
+
+[tool.uv]
+python-downloads = "manual"

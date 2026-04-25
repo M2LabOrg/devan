@@ -1,0 +1,26 @@
+[project]
+name = "excel-retriever-mcp"
+version = "0.1.0"
+description = "MCP Server for Excel data extraction using docling"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "mcp>=1.26.0",
+    "docling>=2.0.0",
+    "pandas>=2.0.0",
+    "openpyxl>=3.1.0",
+    "opensearch-py>=3.1.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0",
+    "black>=23.0",
+    "ruff>=0.1.0",
+]
+opensearch = [
+    "opensearch-py>=2.4.0",
+]
+
+[tool.uv]
+python-downloads = "manual"

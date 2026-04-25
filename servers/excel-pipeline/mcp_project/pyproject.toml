@@ -1,0 +1,18 @@
+[project]
+name = "excel-pipeline"
+version = "0.1.0"
+description = "Robust Excel data extraction, processing, modelling, and validation MCP server"
+requires-python = ">=3.10"
+dependencies = [
+    "mcp>=1.26.0",
+    "openpyxl>=3.1.0",
+    "pandas>=2.0.0",
+]
+
+[project.optional-dependencies]
+docling = ["docling>=2.0.0"]
+dev = [
+    "pytest>=7.0",
+    "pytest-cov>=4.0",
+]
+

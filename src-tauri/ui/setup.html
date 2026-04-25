@@ -1,0 +1,657 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DEVAN Agent - Setup</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg:         #0d1117;
+      --bg-surface: #161b22;
+      --bg-raised:  #1c2129;
+      --border:     #30363d;
+      --text:       #e6edf3;
+      --text-dim:   #8b949e;
+      --text-muted: #484f58;
+      --green:      #3fb950;
+      --green-dim:  rgba(63,185,80,0.15);
+      --red:        #f85149;
+      --red-dim:    rgba(248,81,73,0.15);
+      --yellow:     #d29922;
+      --yellow-dim: rgba(210,153,34,0.15);
+      --blue:       #58a6ff;
+      --blue-dim:   rgba(88,166,255,0.15);
+      --purple:     #bc8cff;
+      --font-sans:  'Inter', system-ui, sans-serif;
+      --font-mono:  'JetBrains Mono', 'SF Mono', Consolas, monospace;
+      --radius:     8px;
+    }
+
+    *, *::before, *::after { margin:0; padding:0; box-sizing:border-box }
+    html { font-size:15px; -webkit-font-smoothing:antialiased }
+    body {
+      font-family: var(--font-sans);
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    @keyframes fadeIn { from { opacity:0; transform:translateY(8px) } to { opacity:1; transform:translateY(0) } }
+    @keyframes spin { to { transform:rotate(360deg) } }
+    @keyframes blink { 0%,100% { opacity:1 } 50% { opacity:0 } }
+    @keyframes slideIn { from { opacity:0; transform:translateY(12px) } to { opacity:1; transform:translateY(0) } }
+
+    .container {
+      width: 100%;
+      max-width: 600px;
+      padding: 2rem 1.5rem;
+      animation: fadeIn 0.4s ease both;
+    }
+
+    /* ── Header ── */
+    .header {
+      margin-bottom: 2rem;
+    }
+    .header h1 {
+      font-size: 1.5rem;
+      font-weight: 600;
+      letter-spacing: -0.02em;
+      margin-bottom: 0.25rem;
+    }
+    .header p {
+      color: var(--text-dim);
+      font-size: 0.875rem;
+      line-height: 1.5;
+    }
+
+    /* ── Progress ── */
+    .progress-track {
+      height: 2px;
+      background: var(--border);
+      border-radius: 1px;
+      margin-bottom: 1.5rem;
+      overflow: hidden;
+    }
+    .progress-bar {
+      height: 100%;
+      background: var(--green);
+      border-radius: 1px;
+      width: 0%;
+      transition: width 0.4s ease;
+    }
+
+    /* ── Terminal output ── */
+    .terminal {
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.25rem;
+      font-family: var(--font-mono);
+      font-size: 0.8rem;
+      line-height: 1.8;
+      min-height: 200px;
+      max-height: 420px;
+      overflow-y: auto;
+      margin-bottom: 1.5rem;
+    }
+    .terminal::-webkit-scrollbar { width: 6px }
+    .terminal::-webkit-scrollbar-track { background: transparent }
+    .terminal::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px }
+
+    .line { display: flex; gap: 0.5rem; align-items: baseline; }
+    .line + .line { margin-top: 2px; }
+
+    .line .icon { flex-shrink: 0; width: 1.25rem; text-align: center; }
+    .line .msg { flex: 1; }
+
+    .line.check .icon { color: var(--green) }
+    .line.fail .icon { color: var(--red) }
+    .line.warn .icon { color: var(--yellow) }
+    .line.info .icon { color: var(--blue) }
+    .line.dim { color: var(--text-muted) }
+    .line.action .icon { color: var(--purple) }
+
+    .line .detail { color: var(--text-dim) }
+    .line .version { color: var(--text-dim); font-size: 0.75rem }
+    .line .path { color: var(--text-muted); font-size: 0.75rem }
+
+    .spinner-inline {
+      display: inline-block;
+      width: 12px; height: 12px;
+      border: 2px solid var(--text-muted);
+      border-top-color: var(--blue);
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      vertical-align: middle;
+    }
+    .cursor-blink::after {
+      content: '\2588';
+      animation: blink 1s step-end infinite;
+      color: var(--text-dim);
+      margin-left: 2px;
+    }
+
+    /* ── Action card (shown when user action needed) ── */
+    .action-card {
+      background: var(--bg-raised);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1rem 1.25rem;
+      margin-bottom: 1rem;
+      animation: slideIn 0.3s ease both;
+    }
+    .action-card h3 {
+      font-size: 0.85rem;
+      font-weight: 500;
+      margin-bottom: 0.75rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .action-card h3 .badge {
+      font-size: 0.65rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      padding: 0.15rem 0.5rem;
+      border-radius: 9999px;
+    }
+    .badge-required { background: var(--red-dim); color: var(--red) }
+    .badge-optional { background: var(--yellow-dim); color: var(--yellow) }
+
+    .action-btns {
+      display: flex; gap: 0.5rem; flex-wrap: wrap;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      padding: 0.5rem 1rem;
+      border-radius: 6px;
+      font-family: var(--font-sans);
+      font-size: 0.8rem;
+      font-weight: 500;
+      border: 1px solid var(--border);
+      cursor: pointer;
+      transition: all 0.15s ease;
+      text-decoration: none;
+    }
+    .btn-primary {
+      background: var(--green);
+      color: var(--bg);
+      border-color: var(--green);
+    }
+    .btn-primary:hover { filter: brightness(1.1) }
+    .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; filter: none }
+    .btn-secondary {
+      background: transparent;
+      color: var(--text-dim);
+    }
+    .btn-secondary:hover { color: var(--text); border-color: var(--text-dim) }
+
+    .cmd-block {
+      display: flex;
+      align-items: center;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 0.4rem 0.6rem;
+      margin-top: 0.75rem;
+      gap: 0.5rem;
+    }
+    .cmd-block code {
+      flex: 1;
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+      color: var(--green);
+    }
+    .cmd-block .copy-btn {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--text-dim);
+      padding: 0.2rem 0.5rem;
+      border-radius: 4px;
+      font-size: 0.7rem;
+      font-family: var(--font-sans);
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .cmd-block .copy-btn:hover { color: var(--text); border-color: var(--text-dim) }
+    .cmd-block .copy-btn.copied { color: var(--green); border-color: var(--green) }
+
+    /* ── Footer actions ── */
+    .footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .footer .status {
+      font-size: 0.8rem;
+      color: var(--text-dim);
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .footer-btns {
+      display: flex;
+      gap: 0.5rem;
+    }
+
+    .btn-launch {
+      background: var(--green);
+      color: var(--bg);
+      border-color: var(--green);
+      padding: 0.6rem 1.5rem;
+      font-size: 0.875rem;
+      font-weight: 600;
+      border-radius: 6px;
+    }
+    .btn-launch:hover { filter: brightness(1.1) }
+
+    .hidden { display: none !important }
+
+    /* ── Summary ── */
+    .summary {
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.25rem;
+      margin-bottom: 1rem;
+      animation: slideIn 0.3s ease both;
+    }
+    .summary h3 {
+      font-size: 0.85rem;
+      font-weight: 500;
+      margin-bottom: 0.75rem;
+      color: var(--green);
+    }
+    .summary-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.5rem;
+    }
+    .summary-item {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.8rem;
+    }
+    .summary-item .dot {
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+    .dot-green { background: var(--green) }
+    .dot-red { background: var(--red) }
+    .dot-yellow { background: var(--yellow) }
+
+    @media (max-width: 640px) {
+      .container { padding: 1.5rem 1rem }
+      .summary-grid { grid-template-columns: 1fr }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>DEVAN Agent</h1>
+      <p>Checking your system and setting things up.</p>
+    </div>
+
+    <div class="progress-track">
+      <div class="progress-bar" id="progress"></div>
+    </div>
+
+    <div class="terminal" id="terminal"></div>
+
+    <div id="actionArea"></div>
+
+    <div class="footer">
+      <div class="status" id="footerStatus">
+        <div class="spinner-inline"></div>
+        <span>Running checks...</span>
+      </div>
+      <div class="footer-btns">
+        <button class="btn btn-secondary hidden" id="btnSkip" onclick="window.location.href='/'">Skip</button>
+        <button class="btn btn-launch hidden" id="btnLaunch" onclick="window.location.href='/'">Launch DEVAN Agent</button>
+        <button class="btn btn-primary hidden" id="btnRetry" onclick="location.reload()">Retry</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const $ = id => document.getElementById(id);
+    const terminal = $('terminal');
+    const actionArea = $('actionArea');
+
+    // ── Terminal output helpers ──
+
+    function log(icon, text, cls = '') {
+      const line = document.createElement('div');
+      line.className = 'line ' + cls;
+      line.innerHTML = `<span class="icon">${icon}</span><span class="msg">${text}</span>`;
+      terminal.appendChild(line);
+      terminal.scrollTop = terminal.scrollHeight;
+      return line;
+    }
+
+    function logCheck(text)  { return log('&#10003;', text, 'check') }
+    function logFail(text)   { return log('&#10007;', text, 'fail') }
+    function logWarn(text)   { return log('!', text, 'warn') }
+    function logInfo(text)   { return log('&gt;', text, 'info') }
+    function logDim(text)    { return log(' ', text, 'dim') }
+    function logAction(text) { return log('*', text, 'action') }
+
+    function logSpinner(text) {
+      const line = document.createElement('div');
+      line.className = 'line info';
+      line.innerHTML = `<span class="icon"><div class="spinner-inline"></div></span><span class="msg">${text}</span>`;
+      terminal.appendChild(line);
+      terminal.scrollTop = terminal.scrollHeight;
+      return line;
+    }
+
+    function removeLine(line) {
+      if (line && line.parentNode) line.parentNode.removeChild(line);
+    }
+
+    function setProgress(pct) {
+      $('progress').style.width = pct + '%';
+    }
+
+    function esc(s) {
+      return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    }
+
+    // ── API call ──
+    async function api(endpoint) {
+      const resp = await fetch('/api/setup/' + endpoint, { method: 'POST' });
+      return resp.json();
+    }
+
+    // ── Copy to clipboard ──
+    function copyCmd(btn, text) {
+      navigator.clipboard.writeText(text).then(() => {
+        btn.textContent = 'Copied!';
+        btn.classList.add('copied');
+        setTimeout(() => { btn.textContent = 'Copy'; btn.classList.remove('copied') }, 1500);
+      });
+    }
+
+    // ── Open external URL (Tauri-aware) ──
+    function openUrl(url) {
+      if (window.__TAURI__) { window.__TAURI__.shell.open(url) }
+      else { window.open(url, '_blank', 'noopener') }
+    }
+
+    // ── Show action card for missing dependency ──
+    function showInstallCard(name, { badge = 'required', installType, installLabel, manualCmd, docsUrl, docsLabel }) {
+      return new Promise(resolve => {
+        const card = document.createElement('div');
+        card.className = 'action-card';
+
+        const badgeClass = badge === 'required' ? 'badge-required' : 'badge-optional';
+        let html = `<h3>${esc(name)} not found <span class="badge ${badgeClass}">${badge}</span></h3>`;
+        html += `<div class="action-btns">`;
+
+        if (installType) {
+          html += `<button class="btn btn-primary" id="install-${installType}">${esc(installLabel || 'Install')}</button>`;
+        }
+        if (manualCmd) {
+          html += `<button class="btn btn-secondary" id="manual-toggle-${installType}">Manual install</button>`;
+        }
+        if (docsUrl) {
+          html += `<button class="btn btn-secondary" onclick="openUrl('${docsUrl}')">${esc(docsLabel || 'Docs')}</button>`;
+        }
+        html += `</div>`;
+
+        if (manualCmd) {
+          html += `<div class="cmd-block hidden" id="manual-cmd-${installType}">
+            <code>${esc(manualCmd)}</code>
+            <button class="copy-btn" onclick="copyCmd(this, '${manualCmd.replace(/'/g, "\\'")}')">Copy</button>
+          </div>`;
+        }
+
+        card.innerHTML = html;
+        actionArea.appendChild(card);
+
+        // Wire up manual toggle
+        if (manualCmd) {
+          const toggleBtn = card.querySelector(`#manual-toggle-${installType}`);
+          const cmdBlock = card.querySelector(`#manual-cmd-${installType}`);
+          toggleBtn.addEventListener('click', () => cmdBlock.classList.toggle('hidden'));
+        }
+
+        // Wire up auto-install
+        if (installType) {
+          const installBtn = card.querySelector(`#install-${installType}`);
+          installBtn.addEventListener('click', async () => {
+            installBtn.disabled = true;
+            installBtn.innerHTML = `<div class="spinner-inline"></div> Installing...`;
+
+            const spinner = logSpinner(`Installing ${name}...`);
+            try {
+              const result = await api('install-' + installType);
+              removeLine(spinner);
+              if (result.ok) {
+                logCheck(`${name} installed <span class="version">${esc(result.version)}</span>`);
+                card.remove();
+                resolve(true);
+              } else {
+                logFail(`Installation failed: ${esc(result.error || 'Unknown error')}`);
+                installBtn.disabled = false;
+                installBtn.textContent = 'Try Again';
+              }
+            } catch (e) {
+              removeLine(spinner);
+              logFail(`Network error: ${esc(e.message)}`);
+              installBtn.disabled = false;
+              installBtn.textContent = 'Try Again';
+            }
+          });
+        }
+      });
+    }
+
+    // ── Main setup flow ──
+    async function runSetup() {
+      const results = { python: false, uv: false, git: false, repo: false, venv: false, ollama: false };
+
+      logDim('devan setup v1.0');
+      logDim('');
+
+      // ── Python ──
+      let spinner = logSpinner('Checking Python...');
+      setProgress(5);
+      const py = await api('check-python');
+      removeLine(spinner);
+
+      if (py.ok) {
+        logCheck(`Python <span class="version">${esc(py.version)}</span> <span class="path">${esc(py.path)}</span>`);
+        results.python = true;
+      } else {
+        logFail('Python 3.10+ not found');
+        showInstallCard('Python 3.10+', {
+          badge: 'required',
+          installType: 'python',
+          installLabel: 'Install Python',
+          manualCmd: navigator.platform.includes('Mac') ? 'brew install python@3.11' :
+                     navigator.platform.includes('Win') ? 'winget install Python.Python.3.11' :
+                     'sudo apt install python3.11',
+          docsUrl: 'https://www.python.org/downloads/',
+          docsLabel: 'python.org'
+        });
+        // Wait for install, but don't block — user can skip
+      }
+      setProgress(15);
+
+      // ── uv ──
+      spinner = logSpinner('Checking uv...');
+      const uv = await api('check-uv');
+      removeLine(spinner);
+
+      if (uv.ok) {
+        logCheck(`uv <span class="version">${esc(uv.version)}</span> <span class="path">${esc(uv.path)}</span>`);
+        results.uv = true;
+      } else {
+        logFail('uv not found');
+        // Auto-install uv without asking — it's lightweight and safe (like brew does)
+        logAction('Installing uv...');
+        spinner = logSpinner('Downloading uv...');
+        const uvInstall = await api('install-uv');
+        removeLine(spinner);
+        if (uvInstall.ok) {
+          logCheck(`uv installed <span class="version">${esc(uvInstall.version)}</span>`);
+          results.uv = true;
+        } else {
+          logFail(`uv install failed: ${esc(uvInstall.error || 'Unknown error')}`);
+          showInstallCard('uv', {
+            badge: 'required',
+            installType: 'uv',
+            installLabel: 'Retry Install',
+            manualCmd: 'curl -LsSf https://astral.sh/uv/install.sh | sh',
+            docsUrl: 'https://docs.astral.sh/uv/',
+            docsLabel: 'uv docs'
+          });
+        }
+      }
+      setProgress(30);
+
+      // ── Git ──
+      spinner = logSpinner('Checking Git...');
+      const git = await api('check-git');
+      removeLine(spinner);
+
+      if (git.ok) {
+        logCheck(`Git <span class="version">${esc(git.version)}</span> <span class="path">${esc(git.path)}</span>`);
+        results.git = true;
+      } else {
+        logFail('Git not found');
+        showInstallCard('Git', {
+          badge: 'required',
+          docsUrl: 'https://git-scm.com/downloads',
+          docsLabel: 'Download Git'
+        });
+      }
+      setProgress(40);
+
+      // ── MCP Servers (repo) ──
+      const prereqs = results.python && results.uv && results.git;
+
+      if (prereqs) {
+        spinner = logSpinner('Checking MCP servers...');
+        const repo = await api('check-repo');
+        removeLine(spinner);
+
+        if (repo.ok) {
+          logCheck(`MCP servers found <span class="path">${esc(repo.path)}</span>`);
+          results.repo = true;
+        } else {
+          logAction('Cloning MCP servers...');
+          spinner = logSpinner('Downloading repository...');
+          const clone = await api('clone-repo');
+          removeLine(spinner);
+          if (clone.ok) {
+            logCheck(`MCP servers cloned <span class="path">${esc(clone.path)}</span>`);
+            results.repo = true;
+          } else {
+            logFail(`Clone failed: ${esc(clone.error || 'Unknown error')}`);
+          }
+        }
+      } else {
+        logDim('Skipping MCP servers (missing prerequisites)');
+      }
+      setProgress(60);
+
+      // ── Client environment (venv) ──
+      if (prereqs && results.repo) {
+        spinner = logSpinner('Setting up environment...');
+        const venv = await api('setup-venv');
+        removeLine(spinner);
+
+        if (venv.ok) {
+          logCheck('Client environment ready');
+          results.venv = true;
+        } else {
+          logFail(`Environment setup failed: ${esc(venv.error || 'Unknown error')}`);
+        }
+      } else if (prereqs) {
+        logDim('Skipping environment (no server repo)');
+      }
+      setProgress(80);
+
+      // ── Ollama (optional) ──
+      spinner = logSpinner('Checking Ollama...');
+      const ollama = await api('check-ollama');
+      removeLine(spinner);
+
+      if (ollama.ok && ollama.models && ollama.models.length > 0) {
+        logCheck(`Ollama <span class="detail">${esc(ollama.models.join(', '))}</span>`);
+        results.ollama = true;
+      } else if (ollama.ok) {
+        logWarn('Ollama running but no models installed');
+        logDim('  Run: ollama pull llama3.2');
+        results.ollama = true;
+      } else {
+        logWarn('Ollama not detected <span class="detail">(optional)</span>');
+      }
+      setProgress(100);
+
+      // ── Summary ──
+      logDim('');
+      const allRequired = results.python && results.uv && results.git && results.repo && results.venv;
+
+      if (allRequired) {
+        logDim('──────────────────────────────');
+        logCheck('<strong>All set! Ready to launch.</strong>');
+
+        // Show summary card
+        const summary = document.createElement('div');
+        summary.className = 'summary';
+        const items = [
+          ['Python', results.python],
+          ['uv', results.uv],
+          ['Git', results.git],
+          ['MCP Servers', results.repo],
+          ['Environment', results.venv],
+          ['Ollama', results.ollama],
+        ];
+        summary.innerHTML = `
+          <h3>Setup complete</h3>
+          <div class="summary-grid">
+            ${items.map(([name, ok]) => `
+              <div class="summary-item">
+                <div class="dot ${ok ? 'dot-green' : 'dot-yellow'}"></div>
+                <span>${name}</span>
+              </div>
+            `).join('')}
+          </div>
+        `;
+        actionArea.innerHTML = '';
+        actionArea.appendChild(summary);
+
+        // Show launch button
+        $('footerStatus').innerHTML = '<span style="color:var(--green)">&#10003;</span> Ready';
+        $('btnLaunch').classList.remove('hidden');
+      } else {
+        logDim('──────────────────────────────');
+        logFail('Some required tools are missing. Install them above, then retry.');
+
+        $('footerStatus').innerHTML = '<span style="color:var(--red)">&#10007;</span> Setup incomplete';
+        $('btnRetry').classList.remove('hidden');
+        $('btnSkip').classList.remove('hidden');
+      }
+    }
+
+    // Start on load
+    window.addEventListener('DOMContentLoaded', () => setTimeout(runSetup, 300));
+  </script>
+</body>
+</html>

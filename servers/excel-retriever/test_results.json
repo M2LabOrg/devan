@@ -1,0 +1,131 @@
+{
+  "timestamp": "2026-03-30T10:15:11.676875",
+  "total_tests": 12,
+  "passed": 12,
+  "failed": 0,
+  "success_rate": "100.0%",
+  "results": [
+    {
+      "test_name": "Test 1: Simple Table",
+      "passed": true,
+      "errors": [],
+      "warnings": [],
+      "details": {
+        "tables_detected": 1,
+        "rows_extracted": 5,
+        "columns": 5
+      }
+    },
+    {
+      "test_name": "Test 2: Multi-Table with Gaps",
+      "passed": true,
+      "errors": [],
+      "warnings": [],
+      "details": {
+        "tables_detected": 2,
+        "text_blocks": 4
+      }
+    },
+    {
+      "test_name": "Test 3: Formulas",
+      "passed": true,
+      "errors": [],
+      "warnings": [
+        "Formula in Total column returned None"
+      ],
+      "details": {
+        "tables_detected": 1
+      }
+    },
+    {
+      "test_name": "Test 4: Merged Cells",
+      "passed": true,
+      "errors": [],
+      "warnings": [],
+      "details": {
+        "merged_regions": 4
+      }
+    },
+    {
+      "test_name": "Test 5: Charts",
+      "passed": true,
+      "errors": [],
+      "warnings": [],
+      "details": {
+        "charts_detected": 1,
+        "chart_title": "Product Sales Over Time"
+      }
+    },
+    {
+      "test_name": "Test 6: Empty Rows/Cols",
+      "passed": true,
+      "errors": [],
+      "warnings": [],
+      "details": {
+        "tables": [
+          "Team A",
+          "Team B",
+          "Combined Results"
+        ]
+      }
+    },
+    {
+      "test_name": "Test 7: Financial Statement",
+      "passed": true,
+      "errors": [],
+      "warnings": [
+        "Expected more rows in financial statement, found 4"
+      ],
+      "details": {}
+    },
+    {
+      "test_name": "Test 8: Scientific Data",
+      "passed": true,
+      "errors": [],
+      "warnings": [],
+      "details": {
+        "note": "Statistical summary with formulas classified as text (acceptable)",
+        "tables_detected": 1
+      }
+    },
+    {
+      "test_name": "Test 9: Pivot-like Structure",
+      "passed": true,
+      "errors": [],
+      "warnings": [],
+      "details": {}
+    },
+    {
+      "test_name": "Test 10: Mixed Data Types",
+      "passed": true,
+      "errors": [],
+      "warnings": [],
+      "details": {
+        "has_numbers": true,
+        "has_strings": true,
+        "has_dates": true
+      }
+    },
+    {
+      "test_name": "Relationship Detection",
+      "passed": true,
+      "errors": [],
+      "warnings": [],
+      "details": {
+        "relationships_found": 8,
+        "project_id_relationship": "\u2713 Found"
+      }
+    },
+    {
+      "test_name": "Export Formats",
+      "passed": true,
+      "errors": [],
+      "warnings": [],
+      "details": {
+        "csv_export": "\u2713 Success",
+        "markdown_export": "\u2713 Success",
+        "json_export": "\u2713 Success"
+      }
+    }
+  ]
+}

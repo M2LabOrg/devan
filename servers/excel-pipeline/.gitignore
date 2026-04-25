@@ -1,0 +1,5 @@
+exports/
+bundles/
+__pycache__/
+*.pyc
+.pytest_cache/

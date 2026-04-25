@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DEVAN Agent — Grizzly</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body {
+      height: 100%;
+      font-family: 'JetBrains Mono', monospace;
+      -webkit-font-smoothing: antialiased;
+      overflow: hidden;
+      image-rendering: pixelated;
+    }
+
+    /* Deep forest night — dark canopy, cool greens */
+    body {
+      background: linear-gradient(180deg,
+        #0A1208 0%,
+        #0F1C0C 20%,
+        #152310 40%,
+        #1A2D14 60%,
+        #1E3318 78%,
+        #243B1C 90%,
+        #2A4220 100%
+      );
+    }
+
+    .scene {
+      position: relative;
+      z-index: 3;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding-bottom: 40px;
+    }
+
+    .mascot-wrap {
+      margin-bottom: 32px;
+      filter: drop-shadow(0 6px 24px rgba(0,0,0,0.6));
+      animation: entrance 0.9s cubic-bezier(0.22,1,0.36,1) both;
+    }
+
+    .bear {
+      animation: breathe 4s ease-in-out infinite;
+      transform-origin: center bottom;
+    }
+
+    .wordmark {
+      font-size: 1.1rem;
+      font-weight: 500;
+      letter-spacing: 0.12em;
+      color: #C8E8B0;
+      text-shadow: 0 2px 12px rgba(0,0,0,0.5);
+      margin-bottom: 8px;
+      animation: entrance 0.9s 0.1s cubic-bezier(0.22,1,0.36,1) both;
+    }
+
+    .status {
+      font-size: 0.58rem;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: rgba(180,220,150,0.45);
+      margin-bottom: 36px;
+      animation: entrance 0.9s 0.2s cubic-bezier(0.22,1,0.36,1) both;
+    }
+
+    .dots {
+      display: flex; gap: 10px;
+      animation: entrance 0.9s 0.3s cubic-bezier(0.22,1,0.36,1) both;
+    }
+    .dot {
+      width: 4px; height: 4px; border-radius: 0;
+      background: rgba(180,220,150,0.5);
+      animation: dotpulse 1.6s ease-in-out infinite;
+    }
+    .dot:nth-child(2) { animation-delay: 0.2s; }
+    .dot:nth-child(3) { animation-delay: 0.4s; }
+
+    @keyframes entrance {
+      from { opacity: 0; transform: translateY(14px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes breathe {
+      0%, 100% { transform: translateY(0); }
+      50%       { transform: translateY(-4px); }
+    }
+    @keyframes dotpulse {
+      0%, 100% { opacity: 0.2; }
+      50%       { opacity: 0.9; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ══ Stars visible through canopy ══ -->
+  <svg style="position:fixed;inset:0;pointer-events:none;z-index:0" viewBox="0 0 1440 900" preserveAspectRatio="xMidYMid slice">
+    <circle cx="200"  cy="50"  r="1.2" fill="#E8FFD8" opacity="0.5"/>
+    <circle cx="450"  cy="80"  r="0.9" fill="#E8FFD8" opacity="0.35"/>
+    <circle cx="720"  cy="40"  r="1.5" fill="#E8FFD8" opacity="0.4"/>
+    <circle cx="980"  cy="70"  r="1"   fill="#E8FFD8" opacity="0.3"/>
+    <circle cx="1250" cy="55"  r="1.2" fill="#E8FFD8" opacity="0.4"/>
+    <circle cx="330"  cy="160" r="0.8" fill="#E8FFD8" opacity="0.2"/>
+    <circle cx="860"  cy="140" r="0.7" fill="#E8FFD8" opacity="0.2"/>
+    <!-- Moon — soft through leaves -->
+    <circle cx="1100" cy="100" r="30" fill="#E8FFD8" opacity="0.06"/>
+  </svg>
+
+  <!-- ══ Pine tree silhouettes — left and right ══ -->
+  <svg style="position:fixed;bottom:0;left:0;right:0;height:100%;pointer-events:none;z-index:1"
+       viewBox="0 0 1440 900" preserveAspectRatio="xMidYMax meet">
+
+    <!-- LEFT trees -->
+    <!-- Tree 1, tall -->
+    <polygon points="80,200  20,900  140,900"  fill="#0A1208"/>
+    <polygon points="80,350  10,900  150,900"  fill="#0D1A0B"/>
+    <!-- Tree 2 -->
+    <polygon points="200,280 140,900 260,900"  fill="#0A1208"/>
+    <polygon points="200,420 130,900 270,900"  fill="#0D1A0B"/>
+    <!-- Tree 3 short -->
+    <polygon points="320,380 270,900 370,900"  fill="#0A1208"/>
+
+    <!-- RIGHT trees -->
+    <polygon points="1360,220 1300,900 1420,900" fill="#0A1208"/>
+    <polygon points="1360,370 1290,900 1430,900" fill="#0D1A0B"/>
+    <polygon points="1240,300 1180,900 1300,900" fill="#0A1208"/>
+    <polygon points="1240,450 1170,900 1310,900" fill="#0D1A0B"/>
+    <polygon points="1120,400 1070,900 1170,900" fill="#0A1208"/>
+
+    <!-- Ground — forest floor -->
+    <rect x="0" y="820" width="1440" height="80" fill="#0A1208"/>
+    <!-- Forest floor texture -->
+    <rect x="0" y="810" width="1440" height="16" fill="#0D1A0B"/>
+    <!-- Grass tufts -->
+    <rect x="100"  y="808" width="6" height="12" fill="#1E3318"/>
+    <rect x="300"  y="810" width="6" height="10" fill="#1E3318"/>
+    <rect x="600"  y="807" width="8" height="14" fill="#1E3318"/>
+    <rect x="900"  y="809" width="6" height="12" fill="#1E3318"/>
+    <rect x="1200" y="808" width="8" height="12" fill="#1E3318"/>
+    <rect x="1350" y="810" width="6" height="10" fill="#1E3318"/>
+  </svg>
+
+  <!-- ══ Fireflies ══ -->
+  <svg style="position:fixed;inset:0;pointer-events:none;z-index:2" viewBox="0 0 1440 900">
+    <circle cx="380" cy="600" r="2" fill="#AAFF66" opacity="0.0">
+      <animate attributeName="opacity" values="0;0.7;0;0" dur="3.1s" begin="0s"   repeatCount="indefinite"/>
+    </circle>
+    <circle cx="560" cy="700" r="2" fill="#AAFF66" opacity="0.0">
+      <animate attributeName="opacity" values="0;0.6;0;0" dur="2.7s" begin="0.8s" repeatCount="indefinite"/>
+    </circle>
+    <circle cx="850" cy="650" r="2" fill="#CCFF88" opacity="0.0">
+      <animate attributeName="opacity" values="0;0.8;0;0" dur="3.5s" begin="1.5s" repeatCount="indefinite"/>
+    </circle>
+    <circle cx="1050" cy="720" r="2" fill="#AAFF66" opacity="0.0">
+      <animate attributeName="opacity" values="0;0.5;0;0" dur="2.9s" begin="0.4s" repeatCount="indefinite"/>
+    </circle>
+  </svg>
+
+  <div class="scene">
+    <!--
+      MINECRAFT-INSPIRED GRIZZLY BEAR
+      Chunky pixel blocks, P=12px per unit.
+      Palette: #7B4A1E body, #5A3412 dark/shadow,
+               #C8825A muzzle, #1C1C1C black,
+               #1E3A5F sunglass tint, #5FF0D0 lens shine.
+      Canvas: 192×204
+    -->
+    <div class="mascot-wrap">
+      <svg class="bear" viewBox="0 0 192 204" width="192" height="204"
+           fill="none" xmlns="http://www.w3.org/2000/svg"
+           shape-rendering="crispEdges">
+
+        <!-- ── EAR BUMPS (the key bear tell) ── -->
+        <!-- Left ear: 3×3 units = 36×36px -->
+        <rect x="12"  y="0"  width="36" height="36" fill="#7B4A1E"/>
+        <!-- Left ear inner (darker hollow) -->
+        <rect x="18"  y="6"  width="24" height="24" fill="#5A3412"/>
+        <!-- Right ear -->
+        <rect x="144" y="0"  width="36" height="36" fill="#7B4A1E"/>
+        <!-- Right ear inner -->
+        <rect x="150" y="6"  width="24" height="24" fill="#5A3412"/>
+
+        <!-- ── WIDE BLOCKY HEAD ── -->
+        <!-- Head block: 14 units wide × 7 units tall = 168×84 -->
+        <rect x="12"  y="24" width="168" height="84" fill="#7B4A1E"/>
+        <!-- Head top edge darker (depth) -->
+        <rect x="12"  y="24" width="168" height="12" fill="#5A3412"/>
+        <!-- Head side shadow left -->
+        <rect x="12"  y="24" width="12"  height="84" fill="#5A3412"/>
+        <!-- Head side shadow right -->
+        <rect x="168" y="24" width="12"  height="84" fill="#5A3412"/>
+
+        <!-- ── FACE PLATE — lighter area ── -->
+        <rect x="36"  y="36" width="120" height="60" fill="#9B5E2E"/>
+
+        <!-- ── SUNGLASSES — Minecraft-slab style ── -->
+        <!-- Frame band across face -->
+        <rect x="30"  y="42" width="132" height="30" fill="#1C1C1C"/>
+        <!-- Left lens tint -->
+        <rect x="33"  y="45" width="54"  height="24" fill="#1E3A5F"/>
+        <!-- Right lens tint -->
+        <rect x="105" y="45" width="54"  height="24" fill="#1E3A5F"/>
+        <!-- Lens divider / nose bridge -->
+        <rect x="87"  y="42" width="18"  height="30" fill="#1C1C1C"/>
+        <!-- Lens shines — tiny highlight blocks -->
+        <rect x="36"  y="48" width="12"  height="6"  fill="#5FF0D0" opacity="0.5"/>
+        <rect x="108" y="48" width="12"  height="6"  fill="#5FF0D0" opacity="0.5"/>
+
+        <!-- ── SNOUT BLOCK ── -->
+        <!-- Snout lower face: 8 units × 2.5 units = 96×30 -->
+        <rect x="48"  y="72" width="96"  height="36" fill="#C8825A"/>
+        <!-- Nose block centered on snout -->
+        <rect x="72"  y="72" width="48"  height="18" fill="#1C1C1C"/>
+        <!-- Nose highlight -->
+        <rect x="75"  y="75" width="12"  height="6"  fill="#3A3A3A"/>
+        <!-- Mouth: two pixel lines -->
+        <rect x="84"  y="90" width="6"   height="12" fill="#5A3412"/>
+        <rect x="72"  y="96" width="48"  height="6"  fill="#5A3412"/>
+
+        <!-- ── BODY BLOCK ── -->
+        <rect x="24"  y="108" width="144" height="72" fill="#7B4A1E"/>
+        <!-- Body top shading -->
+        <rect x="24"  y="108" width="144" height="12" fill="#5A3412"/>
+        <!-- Body side shadow -->
+        <rect x="24"  y="108" width="12"  height="72" fill="#5A3412"/>
+        <rect x="156" y="108" width="12"  height="72" fill="#5A3412"/>
+        <!-- Belly patch — lighter center -->
+        <rect x="60"  y="120" width="72"  height="48" fill="#9B5E2E" opacity="0.5"/>
+
+        <!-- ── ARMS — chunky, out to sides ── -->
+        <!-- Left arm -->
+        <rect x="0"   y="108" width="30"  height="60" fill="#7B4A1E"/>
+        <rect x="0"   y="108" width="12"  height="60" fill="#5A3412"/>
+        <!-- Left paw -->
+        <rect x="0"   y="156" width="36"  height="18" fill="#9B5E2E"/>
+        <!-- Right arm -->
+        <rect x="162" y="108" width="30"  height="60" fill="#7B4A1E"/>
+        <rect x="180" y="108" width="12"  height="60" fill="#5A3412"/>
+        <!-- Right paw -->
+        <rect x="156" y="156" width="36"  height="18" fill="#9B5E2E"/>
+
+        <!-- ── LEGS — short Minecraft stubs ── -->
+        <!-- Left leg -->
+        <rect x="36"  y="180" width="48"  height="24" fill="#7B4A1E"/>
+        <rect x="36"  y="180" width="12"  height="24" fill="#5A3412"/>
+        <!-- Left foot -->
+        <rect x="30"  y="192" width="54"  height="12" fill="#5A3412"/>
+        <!-- Right leg -->
+        <rect x="108" y="180" width="48"  height="24" fill="#7B4A1E"/>
+        <rect x="144" y="180" width="12"  height="24" fill="#5A3412"/>
+        <!-- Right foot -->
+        <rect x="108" y="192" width="54"  height="12" fill="#5A3412"/>
+
+      </svg>
+    </div>
+
+    <div class="wordmark">DEVAN Agent</div>
+    <div class="status">Initialising . . .</div>
+    <div class="dots">
+      <div class="dot"></div>
+      <div class="dot"></div>
+      <div class="dot"></div>
+    </div>
+  </div>
+
+</body>
+</html>

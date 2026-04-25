@@ -1,0 +1,8 @@
+[build]
+# Limit parallel jobs to reduce peak memory during compilation.
+# Increase to 4 if you have 16GB+ RAM free.
+jobs = 1
+
+[profile.dev]
+debug = 0
+split-debuginfo = "unpacked"

@@ -1,0 +1,115 @@
+{
+  "mcp_servers": [
+    {
+      "id": "document_mcp",
+      "name": "Document MCP",
+      "description": "Unified document processing — Excel, PDF, and Word extraction, table detection, OCR, and RAG chunking",
+      "path": "/path/to/devan/servers/document/mcp_project",
+      "command": "uv",
+      "args": ["run", "document_server.py"],
+      "enabled": true
+    },
+    {
+      "id": "prompt_mcp",
+      "name": "Prompt Engineering MCP",
+      "description": "Prompt engineering with library management, PDF processing, and structured prompts",
+      "path": "/path/to/devan/servers/prompt-engineering/mcp_project",
+      "command": "uv",
+      "args": ["run", "prompt_server.py"],
+      "enabled": false
+    },
+    {
+      "id": "guardrail_mcp",
+      "name": "Guardrail MCP",
+      "description": "Content moderation and safety guardrails for LLM outputs",
+      "path": "/path/to/devan/servers/guardrail/mcp_project",
+      "command": "uv",
+      "args": ["run", "guardrail_server.py"],
+      "enabled": false
+    },
+    {
+      "id": "webdesign_mcp",
+      "name": "Web Design MCP",
+      "description": "React component and page generation",
+      "path": "/path/to/devan/servers/webdesign/mcp_project",
+      "command": "uv",
+      "args": ["run", "webdesign_server.py"],
+      "enabled": false
+    },
+    {
+      "id": "webscraper_mcp",
+      "name": "Web Scraper MCP",
+      "description": "Intelligent web scraping with Firecrawl and BeautifulSoup engines",
+      "path": "/path/to/devan/servers/webscraper/mcp_project",
+      "command": "uv",
+      "args": ["run", "webscraper_server.py"],
+      "enabled": false
+    },
+    {
+      "id": "excel_pipeline_mcp",
+      "name": "Excel Pipeline MCP",
+      "description": "Robust Excel data extraction, canonical modelling, validation, and export",
+      "path": "/path/to/devan/servers/excel-pipeline/mcp_project",
+      "command": "uv",
+      "args": ["run", "excel_pipeline_server.py"],
+      "enabled": false
+    },
+    {
+      "id": "data_modelling_mcp",
+      "name": "Data Modelling MCP",
+      "description": "Ingest structured data, infer a relational model, export to SQLite/Arrow/JSON",
+      "path": "/path/to/devan/servers/data-modelling/mcp_project",
+      "command": "uv",
+      "args": ["run", "data_modelling_server.py"],
+      "enabled": false
+    },
+    {
+      "id": "excel_retriever_mcp",
+      "name": "Excel Retriever MCP",
+      "description": "Intelligent Excel file analysis with table detection and text extraction",
+      "path": "/path/to/devan/servers/excel-retriever/mcp_project",
+      "command": "uv",
+      "args": ["run", "excel_server.py"],
+      "enabled": false
+    },
+    {
+      "id": "pdf_extractor_mcp",
+      "name": "PDF Extractor MCP",
+      "description": "PDF extraction optimised for LLM and RAG pipelines",
+      "path": "/path/to/devan/servers/pdf-extractor/mcp_project",
+      "command": "uv",
+      "args": ["run", "pdf_extractor_server.py"],
+      "enabled": false
+    }
+  ],
+  "llm_providers": [
+    {
+      "id": "ollama",
+      "name": "Ollama",
+      "type": "ollama",
+      "base_url": "http://localhost:11434",
+      "models": [],
+      "enabled": true
+    },
+    {
+      "id": "azure_foundry",
+      "name": "Azure Foundry",
+      "type": "openai-compatible",
+      "base_url": "",
+      "models": [],
+      "enabled": false
+    },
+    {
+      "id": "github_copilot",
+      "name": "GitHub Copilot",
+      "type": "copilot",
+      "base_url": "https://models.inference.ai.azure.com",
+      "models": [],
+      "enabled": false,
+      "api_key": ""
+    }
+  ],
+  "selected_llm": "ollama",
+  "selected_model": "llama3.2:latest",
+  "compliance_mode": false
+}
