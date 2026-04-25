@@ -14,7 +14,7 @@ pdf = [
     "PyPDF2>=3.0.0",
 ]
 dev = [
-    "pytest>=7.0",
+    "pytest>=9.0.3",
     "reportlab>=4.0.0",
 ]
 
