@@ -1,0 +1,44 @@
+version: 2
+updates:
+
+  # Python — client UI
+  - package-ecosystem: pip
+    directory: /client
+    schedule:
+      interval: weekly
+      day: monday
+    groups:
+      python-client:
+        patterns: ["*"]
+    open-pull-requests-limit: 2
+
+  # Python — MCP servers (all batched into one PR)
+  - package-ecosystem: pip
+    directories:
+      - /servers/excel-pipeline/mcp_project
+      - /servers/prompt-engineering/mcp_project
+      - /servers/webscraper/mcp_project
+      - /servers/document/mcp_project
+      - /servers/guardrail/mcp_project
+      - /servers/excel-retriever/mcp_project
+      - /servers/pdf-extractor/mcp_project
+      - /servers/data-modelling/mcp_project
+      - /servers/indexer/mcp_project
+      - /servers/webdesign/mcp_project
+    schedule:
+      interval: weekly
+      day: monday
+    groups:
+      mcp-servers:
+        patterns: ["*"]
+    open-pull-requests-limit: 2
+
+  # Rust — Tauri desktop app (monthly; Cargo churn is high)
+  - package-ecosystem: cargo
+    directory: /src-tauri
+    schedule:
+      interval: monthly
+    groups:
+      rust-deps:
+        patterns: ["*"]
+    open-pull-requests-limit: 1
