@@ -1,0 +1,15 @@
+[project]
+name = "indexer"
+version = "0.1.0"
+description = "SQLite-backed chunk indexer with citation-aware Q&A — DEVAN MCP server"
+requires-python = ">=3.10"
+dependencies = [
+    "mcp>=1.26.0",
+]
+
+[project.optional-dependencies]
+synthesis = ["anthropic>=0.50.0"]
+dev = [
+    "pytest>=7.0",
+    "pytest-cov>=4.0",
+]
