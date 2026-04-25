@@ -1,144 +1,304 @@
-<!DOCTYPE html>
-<html lang="en">
+<!doctype html>
+<html lang="en" class="scroll-smooth">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>DEVAN — MCP-Orchestrated Agent Framework</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>DEVAN — MCP-Orchestrated Agent Framework by M2Lab.io</title>
+  <meta name="description" content="DEVAN is a composable MCP-orchestrated agent framework for document intelligence and data pipelines by M2Lab.io." />
+  <meta property="og:title" content="DEVAN — MCP-Orchestrated Agent Framework" />
+  <meta property="og:description" content="Composable MCP-orchestrated agents for document intelligence and data pipelines by M2Lab.io." />
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://m2laborg.github.io/devan/" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <link rel="icon" href="assets/favicon.svg" type="image/svg+xml" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet" />
   <style>
-    :root {
-      --bg: #0d1117;
-      --surface: #161b22;
-      --border: #30363d;
-      --text: #e6edf3;
-      --muted: #8b949e;
-      --accent: #58a6ff;
-      --accent2: #3fb950;
-      --purple: #bc8cff;
+    body { font-family: 'Inter', ui-sans-serif, system-ui, sans-serif; }
+    code, pre, .mono { font-family: 'JetBrains Mono', ui-monospace, monospace; }
+    .gradient-text {
+      background: linear-gradient(135deg, #6366f1 0%, #a855f7 50%, #ec4899 100%);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
     }
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif; line-height: 1.6; }
-    a { color: var(--accent); text-decoration: none; }
-    a:hover { text-decoration: underline; }
-    header {
-      border-bottom: 1px solid var(--border);
-      padding: 1rem 2rem;
-      display: flex;
-      align-items: center;
-      gap: 1rem;
+    .card-glow {
+      transition: all .2s ease;
     }
-    header .logo { font-size: 1.3rem; font-weight: 700; letter-spacing: .04em; color: var(--text); }
-    header nav { margin-left: auto; display: flex; gap: 1.5rem; font-size: .9rem; color: var(--muted); }
-    .hero {
-      text-align: center;
-      padding: 5rem 2rem 4rem;
-      max-width: 760px;
-      margin: 0 auto;
+    .card-glow:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 12px 32px -12px rgba(99,102,241,.35), 0 0 0 1px rgba(99,102,241,.25);
     }
-    .badge-row { display: flex; justify-content: center; gap: .5rem; flex-wrap: wrap; margin-bottom: 2rem; }
-    .badge { background: var(--surface); border: 1px solid var(--border); border-radius: 9999px; padding: .25rem .75rem; font-size: .78rem; color: var(--muted); }
-    .badge.green { color: var(--accent2); border-color: var(--accent2); }
-    .badge.blue  { color: var(--accent);  border-color: var(--accent);  }
-    .badge.purple{ color: var(--purple);  border-color: var(--purple);  }
-    .hero h1 { font-size: 3rem; font-weight: 800; line-height: 1.15; letter-spacing: -.02em; margin-bottom: 1rem; }
-    .hero h1 span { color: var(--accent); }
-    .hero p { font-size: 1.15rem; color: var(--muted); max-width: 580px; margin: 0 auto 2.5rem; }
-    .btn-row { display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap; }
-    .btn { display: inline-block; padding: .65rem 1.5rem; border-radius: 6px; font-weight: 600; font-size: .95rem; transition: opacity .15s; }
-    .btn:hover { opacity: .85; text-decoration: none; }
-    .btn-primary { background: var(--accent); color: #0d1117; }
-    .btn-outline  { background: transparent; border: 1px solid var(--border); color: var(--text); }
-    .features {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-      gap: 1.25rem;
-      max-width: 960px;
-      margin: 0 auto;
-      padding: 0 2rem 5rem;
+    .grid-bg {
+      background-image:
+        radial-gradient(circle at 20% 0%, rgba(99,102,241,.10), transparent 50%),
+        radial-gradient(circle at 80% 30%, rgba(236,72,153,.08), transparent 45%);
     }
-    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 1.5rem; }
-    .card .icon { font-size: 1.8rem; margin-bottom: .75rem; }
-    .card h3 { font-size: 1rem; font-weight: 700; margin-bottom: .4rem; }
-    .card p  { font-size: .88rem; color: var(--muted); }
-    .section-title { text-align: center; font-size: 1.6rem; font-weight: 700; margin-bottom: 2rem; padding-top: 1rem; }
-    .code-block {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      padding: 1.25rem 1.5rem;
-      font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
-      font-size: .88rem;
-      color: var(--accent2);
-      max-width: 620px;
-      margin: 0 auto 4rem;
-      text-align: left;
-      overflow-x: auto;
+    .nav-link.active {
+      background: rgb(238 242 255);
+      color: rgb(67 56 202);
+      font-weight: 600;
     }
-    .code-block .comment { color: var(--muted); }
-    footer { border-top: 1px solid var(--border); text-align: center; padding: 2rem; font-size: .85rem; color: var(--muted); }
-    footer a { color: var(--muted); }
-    footer a:hover { color: var(--text); }
+    .sidebar::-webkit-scrollbar { width: 6px; }
+    .sidebar::-webkit-scrollbar-thumb { background: #e5e7eb; border-radius: 3px; }
   </style>
 </head>
-<body>
-<header>
-  <span class="logo">DEVAN</span>
-  <nav>
-    <a href="https://github.com/M2LabOrg/devan">GitHub</a>
-    <a href="https://github.com/M2LabOrg/devan/blob/main/README.md">Docs</a>
-    <a href="https://github.com/M2LabOrg/devan/issues">Issues</a>
-  </nav>
-</header>
-<section class="hero">
-  <div class="badge-row">
-    <span class="badge green">Apache 2.0</span>
-    <span class="badge blue">MCP-native</span>
-    <span class="badge purple">By M2Lab.io</span>
+<body class="bg-slate-50 text-slate-900 antialiased">
+
+  <!-- mobile top bar -->
+  <div class="lg:hidden sticky top-0 z-40 bg-white border-b border-slate-200 px-4 py-3 flex items-center justify-between">
+    <a href="#" class="flex items-center gap-2 font-bold">
+      <span class="inline-block w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-500 to-pink-500 grid place-items-center text-white text-sm">M2</span>
+      <span>DEVAN</span>
+    </a>
+    <button id="menu-btn" aria-label="Open menu" class="p-2 rounded-md hover:bg-slate-100">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+    </button>
   </div>
-  <h1>Composable agents<br>for <span>document intelligence</span></h1>
-  <p>DEVAN is an MCP-orchestrated agent framework for document intelligence and data pipelines — designed to be modular, extensible, and production-ready.</p>
-  <div class="btn-row">
-    <a class="btn btn-primary" href="https://github.com/M2LabOrg/devan">Get started on GitHub</a>
-    <a class="btn btn-outline" href="https://github.com/M2LabOrg/devan/issues">Request a feature</a>
+
+  <div class="flex">
+
+    <!-- SIDEBAR -->
+    <aside id="sidebar" class="sidebar fixed lg:sticky top-0 left-0 h-screen w-72 bg-white border-r border-slate-200 overflow-y-auto z-50 transform -translate-x-full lg:translate-x-0 transition-transform">
+      <div class="p-6">
+        <a href="#" class="flex items-center gap-2.5 font-bold text-lg mb-1">
+          <span class="inline-block w-9 h-9 rounded-lg bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 grid place-items-center text-white text-sm shadow-sm">M2</span>
+          <span>DEVAN</span>
+        </a>
+        <p class="text-xs text-slate-500 ml-11">by M2Lab.io</p>
+      </div>
+
+      <nav class="px-4 pb-6 space-y-6">
+        <div>
+          <p class="px-3 text-[11px] uppercase tracking-wider text-slate-400 font-semibold mb-2">Overview</p>
+          <ul class="space-y-0.5 text-sm">
+            <li><a class="nav-link block px-3 py-2 rounded-md text-slate-700 hover:bg-slate-100" href="#top">Home</a></li>
+            <li><a class="nav-link block px-3 py-2 rounded-md text-slate-700 hover:bg-slate-100" href="#quickstart">Quick start</a></li>
+            <li><a class="nav-link block px-3 py-2 rounded-md text-slate-700 hover:bg-slate-100" href="#architecture">Architecture</a></li>
+          </ul>
+        </div>
+
+        <div>
+          <p class="px-3 text-[11px] uppercase tracking-wider text-slate-400 font-semibold mb-2">MCP Servers</p>
+          <ul class="space-y-0.5 text-sm">
+            <li><a class="nav-link block px-3 py-2 rounded-md text-slate-700 hover:bg-slate-100 mono text-[13px]" href="#server-document">document</a></li>
+            <li><a class="nav-link block px-3 py-2 rounded-md text-slate-700 hover:bg-slate-100 mono text-[13px]" href="#server-data-modelling">data-modelling</a></li>
+          </ul>
+        </div>
+
+        <div>
+          <p class="px-3 text-[11px] uppercase tracking-wider text-slate-400 font-semibold mb-2">Links</p>
+          <ul class="space-y-0.5 text-sm">
+            <li><a class="block px-3 py-2 rounded-md text-slate-700 hover:bg-slate-100" href="https://github.com/M2LabOrg/devan">GitHub repo &#8599;</a></li>
+            <li><a class="block px-3 py-2 rounded-md text-slate-700 hover:bg-slate-100" href="https://github.com/M2LabOrg/devan/blob/main/SECURITY.md">Security policy &#8599;</a></li>
+            <li><a class="block px-3 py-2 rounded-md text-slate-700 hover:bg-slate-100" href="https://github.com/M2LabOrg/devan/blob/main/LICENSE">Apache 2.0 &#8599;</a></li>
+          </ul>
+        </div>
+      </nav>
+    </aside>
+
+    <!-- backdrop for mobile -->
+    <div id="backdrop" class="fixed inset-0 bg-slate-900/30 z-40 hidden lg:hidden"></div>
+
+    <!-- MAIN -->
+    <main class="flex-1 min-w-0">
+
+      <!-- hero -->
+      <header id="top" class="grid-bg border-b border-slate-200">
+        <div class="max-w-5xl mx-auto px-6 lg:px-12 pt-16 lg:pt-24 pb-20">
+          <p class="text-xs uppercase tracking-widest text-indigo-600 font-semibold mb-4">MCP &#xb7; Document Intelligence &#xb7; Data Pipelines</p>
+          <h1 class="text-4xl md:text-5xl lg:text-6xl font-extrabold leading-[1.1] mb-6 text-slate-900">
+            Composable agents for<br/><span class="gradient-text">document intelligence</span>
+          </h1>
+          <p class="text-lg text-slate-600 max-w-2xl mb-8">
+            <strong class="text-slate-900">DEVAN</strong> is an MCP-orchestrated agent framework for document intelligence and data pipelines &#8212; modular MCP servers that compose via standard tool interfaces, no glue code required.
+          </p>
+          <div class="flex flex-wrap gap-3">
+            <a href="#quickstart" class="px-5 py-3 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-semibold shadow-sm">Get started</a>
+            <a href="https://github.com/M2LabOrg/devan" class="px-5 py-3 rounded-lg border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 font-medium">View on GitHub</a>
+          </div>
+        </div>
+      </header>
+
+      <!-- why devan -->
+      <section class="bg-white border-b border-slate-200">
+        <div class="max-w-5xl mx-auto px-6 lg:px-12 py-16">
+          <h2 class="text-3xl font-bold text-slate-900 mb-2">Why DEVAN?</h2>
+          <p class="text-slate-500 mb-10">Most document-processing pipelines are one-off scripts. DEVAN gives you reusable, MCP-native servers that any AI assistant can orchestrate.</p>
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
+            <div class="rounded-xl border border-slate-200 p-6 bg-slate-50/50">
+              <div class="text-2xl mb-3">&#9889;</div>
+              <h3 class="font-semibold mb-1 text-slate-900">MCP-native</h3>
+              <p class="text-sm text-slate-600">Built on the Model Context Protocol &#8212; agents compose via standard tool interfaces.</p>
+            </div>
+            <div class="rounded-xl border border-slate-200 p-6 bg-slate-50/50">
+              <div class="text-2xl mb-3">&#128196;</div>
+              <h3 class="font-semibold mb-1 text-slate-900">Document-first</h3>
+              <p class="text-sm text-slate-600">PDF, Word, Excel, PowerPoint, HTML &#8212; extract, transform, and reason over any document format.</p>
+            </div>
+            <div class="rounded-xl border border-slate-200 p-6 bg-slate-50/50">
+              <div class="text-2xl mb-3">&#128295;</div>
+              <h3 class="font-semibold mb-1 text-slate-900">Composable</h3>
+              <p class="text-sm text-slate-600">Each server is independently deployable and testable. Chain them into pipelines with minimal config.</p>
+            </div>
+            <div class="rounded-xl border border-slate-200 p-6 bg-slate-50/50">
+              <div class="text-2xl mb-3">&#128274;</div>
+              <h3 class="font-semibold mb-1 text-slate-900">Production-ready</h3>
+              <p class="text-sm text-slate-600">Apache 2.0, security policy, Dependabot, and typed Python throughout.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- quick start -->
+      <section id="quickstart" class="max-w-5xl mx-auto px-6 lg:px-12 py-16">
+        <h2 class="text-3xl font-bold text-slate-900 mb-2">Quick start</h2>
+        <p class="text-slate-500 mb-8">Clone the repo, pick a server, and connect it to your MCP host.</p>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-5">
+          <div class="rounded-xl border border-slate-200 p-6 bg-white">
+            <h3 class="font-semibold text-base mb-2 text-slate-900">1. Clone</h3>
+<pre class="text-[13px] leading-relaxed bg-slate-900 text-slate-100 rounded-md p-4 whitespace-pre-wrap break-words"><code>git clone https://github.com/M2LabOrg/devan.git
+cd devan</code></pre>
+          </div>
+          <div class="rounded-xl border border-slate-200 p-6 bg-white">
+            <h3 class="font-semibold text-base mb-2 text-slate-900">2. Install a server</h3>
+<pre class="text-[13px] leading-relaxed bg-slate-900 text-slate-100 rounded-md p-4 whitespace-pre-wrap break-words"><code>cd servers/document
+pip install -e .
+
+# or data-modelling
+cd servers/data-modelling
+pip install -e .</code></pre>
+          </div>
+          <div class="rounded-xl border border-slate-200 p-6 bg-white lg:col-span-2">
+            <h3 class="font-semibold text-base mb-2 text-slate-900">3. Connect to Claude / any MCP host</h3>
+<pre class="text-[13px] leading-relaxed bg-slate-900 text-slate-100 rounded-md p-4 whitespace-pre-wrap break-words"><code># claude_desktop_config.json
+{
+  "mcpServers": {
+    "devan-document": {
+      "command": "python",
+      "args": ["-m", "mcp_project.server"]
+    }
+  }
+}</code></pre>
+          </div>
+        </div>
+      </section>
+
+      <!-- mcp servers -->
+      <section id="servers" class="bg-white border-t border-slate-200">
+        <div class="max-w-5xl mx-auto px-6 lg:px-12 py-16">
+          <h2 class="text-3xl font-bold text-slate-900 mb-2">MCP Servers</h2>
+          <p class="text-slate-500 mb-10">Each server is a self-contained Python package exposing MCP tools.</p>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+            <!-- document -->
+            <a id="server-document" href="https://github.com/M2LabOrg/devan/tree/main/servers/document"
+               class="card-glow block rounded-xl border border-slate-200 bg-white p-6">
+              <div class="flex items-center justify-between mb-4">
+                <span class="px-2 py-0.5 text-xs rounded-full ring-1 bg-indigo-50 text-indigo-700 ring-indigo-200">document intelligence</span>
+                <span class="text-slate-400 text-xs">source &#8599;</span>
+              </div>
+              <h3 class="font-semibold text-lg mb-1 mono text-slate-900">document</h3>
+              <p class="text-sm text-slate-600 mb-4 leading-relaxed">Reads and extracts content from PDFs, Word (.docx), Excel (.xlsx), PowerPoint (.pptx), and HTML files. Integrates with OpenSearch for indexing and semantic retrieval.</p>
+              <div class="flex flex-wrap gap-2">
+                <span class="text-xs px-2 py-1 bg-slate-100 rounded-full text-slate-600">PDF</span>
+                <span class="text-xs px-2 py-1 bg-slate-100 rounded-full text-slate-600">Word</span>
+                <span class="text-xs px-2 py-1 bg-slate-100 rounded-full text-slate-600">Excel</span>
+                <span class="text-xs px-2 py-1 bg-slate-100 rounded-full text-slate-600">PowerPoint</span>
+                <span class="text-xs px-2 py-1 bg-slate-100 rounded-full text-slate-600">OpenSearch</span>
+              </div>
+            </a>
+
+            <!-- data-modelling -->
+            <a id="server-data-modelling" href="https://github.com/M2LabOrg/devan/tree/main/servers/data-modelling"
+               class="card-glow block rounded-xl border border-slate-200 bg-white p-6">
+              <div class="flex items-center justify-between mb-4">
+                <span class="px-2 py-0.5 text-xs rounded-full ring-1 bg-purple-50 text-purple-700 ring-purple-200">data pipelines</span>
+                <span class="text-slate-400 text-xs">source &#8599;</span>
+              </div>
+              <h3 class="font-semibold text-lg mb-1 mono text-slate-900">data-modelling</h3>
+              <p class="text-sm text-slate-600 mb-4 leading-relaxed">Schema inference, data transformation, and modelling pipelines. Supports Excel/CSV ingestion, typed schema generation, and structured output for downstream agents.</p>
+              <div class="flex flex-wrap gap-2">
+                <span class="text-xs px-2 py-1 bg-slate-100 rounded-full text-slate-600">Schema inference</span>
+                <span class="text-xs px-2 py-1 bg-slate-100 rounded-full text-slate-600">Excel / CSV</span>
+                <span class="text-xs px-2 py-1 bg-slate-100 rounded-full text-slate-600">Typed output</span>
+                <span class="text-xs px-2 py-1 bg-slate-100 rounded-full text-slate-600">lxml</span>
+              </div>
+            </a>
+
+          </div>
+        </div>
+      </section>
+
+      <!-- architecture -->
+      <section id="architecture" class="max-w-5xl mx-auto px-6 lg:px-12 py-16">
+        <h2 class="text-3xl font-bold text-slate-900 mb-2">Architecture</h2>
+        <p class="text-slate-500 mb-8">DEVAN follows a clean separation: each server exposes MCP tools; an LLM host (Claude, any MCP-compatible client) orchestrates them.</p>
+        <div class="rounded-xl border border-slate-200 bg-white p-6 overflow-x-auto">
+<pre class="text-[13px] leading-relaxed text-slate-700 whitespace-pre"><code>  MCP Host (Claude Desktop / Claude Code / custom agent)
+       |
+       |  MCP tool calls
+       v
+  +-----------+        +-----------------+
+  |  document |        | data-modelling  |
+  |  server   |        |    server       |
+  +-----------+        +-----------------+
+       |                        |
+  PDF, Word,              Excel, CSV,
+  Excel, PPTX,            Schema inference,
+  HTML, OpenSearch        typed pipelines</code></pre>
+        </div>
+      </section>
+
+      <!-- footer -->
+      <footer class="border-t border-slate-200 bg-white">
+        <div class="max-w-5xl mx-auto px-6 lg:px-12 py-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 text-sm text-slate-500">
+          <div>Built by <a class="text-slate-900 font-medium hover:underline" href="https://github.com/M2LabOrg">M2Lab.io</a></div>
+          <div class="flex gap-4">
+            <a href="https://github.com/M2LabOrg/devan" class="hover:text-slate-900">Repo</a>
+            <a href="https://github.com/M2LabOrg/devan/blob/main/LICENSE" class="hover:text-slate-900">Apache 2.0</a>
+            <a href="https://github.com/M2LabOrg/devan/blob/main/SECURITY.md" class="hover:text-slate-900">Security</a>
+          </div>
+        </div>
+      </footer>
+
+    </main>
   </div>
-</section>
-<div style="max-width:960px;margin:0 auto;padding:0 2rem;">
-  <h2 class="section-title">Why DEVAN?</h2>
-</div>
-<div class="features">
-  <div class="card">
-    <div class="icon">&#9889;</div>
-    <h3>MCP-Orchestrated</h3>
-    <p>Built natively on the Model Context Protocol — agents compose via standard tool interfaces, no glue code required.</p>
-  </div>
-  <div class="card">
-    <div class="icon">&#128196;</div>
-    <h3>Document Intelligence</h3>
-    <p>First-class support for PDFs, Word, Excel, PowerPoint, and OpenSearch — extract, transform, and reason over documents.</p>
-  </div>
-  <div class="card">
-    <div class="icon">&#128295;</div>
-    <h3>Composable Pipelines</h3>
-    <p>Chain agents into data pipelines with minimal configuration. Each server is independently deployable and testable.</p>
-  </div>
-  <div class="card">
-    <div class="icon">&#128274;</div>
-    <h3>Production-Ready</h3>
-    <p>Apache 2.0 licensed, with a security policy, CodeQL scanning, and Dependabot keeping dependencies fresh.</p>
-  </div>
-</div>
-<div style="max-width:960px;margin:0 auto;padding:0 2rem;">
-  <h2 class="section-title">Quick start</h2>
-</div>
-<div class="code-block">
-  <span class="comment"># Clone the repo</span><br>
-  git clone https://github.com/M2LabOrg/devan.git<br>
-  cd devan<br><br>
-  <span class="comment"># More setup instructions coming soon</span>
-</div>
-<footer>
-  Built by <a href="https://github.com/M2LabOrg">M2Lab.io</a> &nbsp;&middot;&nbsp;
-  <a href="https://github.com/M2LabOrg/devan/blob/main/LICENSE">Apache 2.0</a> &nbsp;&middot;&nbsp;
-  <a href="https://github.com/M2LabOrg/devan/blob/main/SECURITY.md">Security Policy</a>
-</footer>
+
+  <script>
+    // mobile sidebar toggle
+    const sidebar = document.getElementById('sidebar');
+    const backdrop = document.getElementById('backdrop');
+    document.getElementById('menu-btn').addEventListener('click', () => {
+      sidebar.classList.remove('-translate-x-full');
+      backdrop.classList.remove('hidden');
+    });
+    backdrop.addEventListener('click', () => {
+      sidebar.classList.add('-translate-x-full');
+      backdrop.classList.add('hidden');
+    });
+    sidebar.querySelectorAll('a').forEach(a => a.addEventListener('click', () => {
+      if (window.innerWidth < 1024) {
+        sidebar.classList.add('-translate-x-full');
+        backdrop.classList.add('hidden');
+      }
+    }));
+
+    // active nav highlight on scroll
+    const sections = document.querySelectorAll('section[id], header[id]');
+    const navLinks = document.querySelectorAll('.nav-link');
+    const observer = new IntersectionObserver(entries => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          navLinks.forEach(l => l.classList.remove('active'));
+          const active = document.querySelector(`.nav-link[href="#${entry.target.id}"]`);
+          if (active) active.classList.add('active');
+        }
+      });
+    }, { rootMargin: '-30% 0px -60% 0px' });
+    sections.forEach(s => observer.observe(s));
+  </script>
 </body>
 </html>
