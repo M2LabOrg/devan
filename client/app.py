@@ -1946,11 +1946,8 @@ REQUIRED_PROJECT_REQUIREMENTS = [
     'beautifulsoup4>=4.12',
     'lxml>=5.0',
     'firecrawl-py>=1.0.0',
-    # PDF extraction stack
-    'pymupdf>=1.25.0',
-    'pymupdf4llm>=0.0.17',
-    'docling>=2.0.0',
-    'easyocr>=1.7.0',
+    # PDF extraction — pypdf only (AGPL pymupdf/pymupdf4llm excluded for license compliance)
+    'pypdf>=4.0.0',
     # Excel extraction stack
     'openpyxl>=3.1.0',
 ]
@@ -2636,14 +2633,17 @@ async def _extract_chunks_via_mcp(file_path: Path, tool_registry: dict) -> list[
 async def _index_folder_async(folder_path: str, session_id: str, sid: str) -> None:
     """Connect to document + indexer MCP servers, walk folder, index all files."""
     folder = Path(folder_path)
-    files = sorted([
-        f for f in folder.rglob('*')
-        if f.is_file()
-        and f.suffix.lower() in _INDEXABLE_EXTENSIONS
-        and not f.name.startswith('.')
-        and '.venv' not in f.parts
-        and '__pycache__' not in f.parts
-    ])
+    files = []
+    for f in sorted(folder.rglob('*')):
+        try:
+            if (f.is_file()
+                    and f.suffix.lower() in _INDEXABLE_EXTENSIONS
+                    and not f.name.startswith('.')
+                    and '.venv' not in f.parts
+                    and '__pycache__' not in f.parts):
+                files.append(f)
+        except (PermissionError, OSError):
+            continue
 
     if not files:
         socketio.emit('index_complete', {
@@ -2885,8 +2885,8 @@ def _generate_vscode_script(source_path: Path, output_path: Path, files: list, s
     if len(files) > 20:
         file_list_str += f',\n        # ... and {len(files) - 20} more files'
 
-    # Always include requirements for all supported types
-    requirements = ['pymupdf4llm', 'pymupdf', 'openpyxl', 'python-docx']
+    # pymupdf/pymupdf4llm are AGPL v3 (not Apache 2.0 compatible) — use pypdf instead
+    requirements = ['pypdf', 'openpyxl', 'python-docx']
 
     # Write requirements.txt next to the script
     req_path = (scripts_path or output_path) / 'requirements.txt'
@@ -2932,83 +2932,49 @@ def _check_tesseract() -> bool:
     return _shutil.which('tesseract') is not None
 
 def extract_pdf(file_path: Path) -> Dict[str, Any]:
-    """
-    Hybrid PDF extraction with per-page OCR detection.
-    - Text pages: pymupdf4llm (page_chunks mode for per-page Markdown)
-    - Scanned pages: Tesseract OCR if available, else annotated placeholder
-    """
-    import pymupdf4llm
-    import pymupdf
+    """PDF extraction using pypdf (BSD 3-Clause — Apache 2.0 compatible)."""
+    from pypdf import PdfReader
     import datetime
 
-    doc = pymupdf.open(str(file_path))
-    total_pages = len(doc)
-    metadata = doc.metadata or {}
+    reader = PdfReader(str(file_path))
+    total_pages = len(reader.pages)
+    meta = reader.metadata or {}
 
-    # Per-page scan: detect scanned pages
+    page_texts = []
     page_info = []
     scanned_pages = []
-    for i in range(total_pages):
-        page = doc[i]
-        words = page.get_text('words')
-        images = page.get_images(full=False)
-        needs_ocr = len(words) < 15 and len(images) > 0
+
+    for i, page in enumerate(reader.pages):
+        text = (page.extract_text() or '').strip()
+        word_count = len(text.split())
+        needs_ocr = word_count < 15
         if needs_ocr:
             scanned_pages.append(i + 1)
-        page_info.append({'page': i + 1, 'words': len(words), 'images': len(images), 'needs_ocr': needs_ocr})
-    doc.close()
+        page_info.append({'page': i + 1, 'words': word_count, 'needs_ocr': needs_ocr})
+        if text:
+            page_texts.append(f'\n\n---\n\n*Page {i + 1}*\n\n{text}')
+        elif needs_ocr:
+            page_texts.append(f'\n\n---\n\n*Page {i + 1} [SCANNED — no selectable text]*\n')
 
-    tesseract = _check_tesseract()
     ocr_ratio = len(scanned_pages) / total_pages if total_pages > 0 else 0
-
-    # Extract with per-page chunks
-    chunks = pymupdf4llm.to_markdown(str(file_path), page_chunks=True, show_progress=False)
-    chunk_map = {c.get('metadata', {}).get('page', 0) + 1: c.get('text', '').strip() for c in chunks}
-
-    doc2 = pymupdf.open(str(file_path)) if (scanned_pages and tesseract) else None
-    page_texts = []
-    engine_used = 'pymupdf4llm'
-
-    for info in page_info:
-        pg, text = info['page'], chunk_map.get(info['page'], '')
-        if info['needs_ocr']:
-            if tesseract and doc2:
-                try:
-                    tp = doc2[pg - 1].get_textpage_ocr(language='eng', dpi=300, full=True)
-                    ocr_text = doc2[pg - 1].get_text(textpage=tp).strip()
-                    engine_used = 'pymupdf4llm+tesseract'
-                    label = f'*Page {pg} [OCR]*' if ocr_text else f'*Page {pg} [SCANNED — OCR no text]*'
-                    page_texts.append(f'\n\n---\n\n{label}\n\n{ocr_text}')
-                except Exception as e:
-                    page_texts.append(f'\n\n---\n\n*Page {pg} [SCANNED — OCR error: {e}]*\n\n{text}')
-            else:
-                page_texts.append(
-                    f'\n\n---\n\n*Page {pg} [SCANNED — install Tesseract for OCR: '
-                    f'`brew install tesseract`]*\n\n{text}'
-                )
-        elif text:
-            page_texts.append(f'\n\n---\n\n*Page {pg}*\n\n{text}')
-
-    if doc2:
-        doc2.close()
 
     return {
         'source': str(file_path),
         'filename': file_path.name,
         'type': 'pdf',
         'pages': total_pages,
-        'engine': engine_used,
+        'engine': 'pypdf',
         'scanned_pages': scanned_pages,
         'scanned_ratio': round(ocr_ratio, 2),
-        'ocr_available': tesseract,
-        'ocr_hint': (
-            'brew install tesseract  # macOS — then re-run for scanned pages'
-            if scanned_pages and not tesseract else None
-        ),
+        'ocr_available': False,
+        'ocr_hint': ('Some pages appear scanned (no selectable text).' if scanned_pages else None),
         'content': '\n'.join(page_texts),
         'page_stats': page_info,
-        'metadata': {'title': metadata.get('title', ''), 'author': metadata.get('author', ''),
-                     'subject': metadata.get('subject', '')},
+        'metadata': {
+            'title': meta.get('/Title', '') or '',
+            'author': meta.get('/Author', '') or '',
+            'subject': meta.get('/Subject', '') or '',
+        },
         'processed_at': datetime.datetime.now().isoformat(),
     }
 
@@ -3213,132 +3179,58 @@ def _extract_file(file_path: Path) -> dict:
 
 def _extract_pdf(file_path: Path) -> dict:
     """
-    Hybrid PDF extraction with per-page OCR detection.
+    PDF extraction using pypdf (BSD 3-Clause — Apache 2.0 compatible).
 
-    Strategy:
-    - Opens the PDF and scans every page for text density.
-    - Pages with very few words but embedded images are flagged as likely scanned.
-    - Text pages: extracted via pymupdf4llm (page_chunks=True for per-page Markdown).
-    - Scanned pages: OCR via Tesseract if available, otherwise clearly annotated.
-    - Returns structured dict with content, OCR metadata, and per-page stats.
+    Per-page text is extracted and assembled into Markdown. Pages with very
+    little text are flagged as likely scanned so callers can warn the user.
     """
-    import pymupdf4llm
-    import pymupdf
     import datetime
+    from pypdf import PdfReader
 
-    doc = pymupdf.open(str(file_path))
-    total_pages = len(doc)
-    metadata = doc.metadata or {}
+    reader = PdfReader(str(file_path))
+    total_pages = len(reader.pages)
+    meta = reader.metadata or {}
 
-    # ── Step 1: Per-page scan ────────────────────────────────────────────────
+    page_texts = []
     page_info = []
     scanned_pages = []
 
-    for i in range(total_pages):
-        page = doc[i]
-        words = page.get_text('words')       # list of word tuples
-        images = page.get_images(full=False)
-        word_count = len(words)
-        image_count = len(images)
-        # A page is scanned if it has almost no selectable text but has images
-        needs_ocr = word_count < 15 and image_count > 0
+    for i, page in enumerate(reader.pages):
+        text = (page.extract_text() or '').strip()
+        word_count = len(text.split())
+        needs_ocr = word_count < 15
         if needs_ocr:
-            scanned_pages.append(i + 1)      # 1-indexed
-        page_info.append({
-            'page': i + 1,
-            'words': word_count,
-            'images': image_count,
-            'needs_ocr': needs_ocr,
-        })
-
-    doc.close()
-
-    ocr_ratio = len(scanned_pages) / total_pages if total_pages > 0 else 0
-    tesseract_available = _check_tesseract()
-
-    # ── Step 2: Extract with per-page chunks ────────────────────────────────
-    try:
-        chunks = pymupdf4llm.to_markdown(str(file_path), page_chunks=True, show_progress=False)
-        chunk_map = {}
-        for chunk in chunks:
-            pg = chunk.get('metadata', {}).get('page', 0) + 1  # 0→1 indexed
-            chunk_map[pg] = chunk.get('text', '').strip()
-    except Exception:
-        # Fallback: single-pass extraction
-        raw = pymupdf4llm.to_markdown(str(file_path), show_progress=False)
-        return {
-            'source': str(file_path), 'filename': file_path.name, 'type': 'pdf',
-            'pages': total_pages, 'engine': 'pymupdf4llm-fallback',
-            'scanned_pages': scanned_pages, 'scanned_ratio': round(ocr_ratio, 2),
-            'ocr_available': tesseract_available,
-            'ocr_hint': ('brew install tesseract  # then re-run for scanned pages'
-                         if scanned_pages and not tesseract_available else None),
-            'content': raw, 'page_stats': page_info,
-            'metadata': {'title': metadata.get('title', ''), 'author': metadata.get('author', ''),
-                         'subject': metadata.get('subject', '')},
-            'processed_at': datetime.datetime.now().isoformat(),
-        }
-
-    # ── Step 3: Build output with OCR handling per page ─────────────────────
-    doc2 = pymupdf.open(str(file_path)) if (scanned_pages and tesseract_available) else None
-    page_texts = []
-    engine_used = 'pymupdf4llm'
-
-    for info in page_info:
-        pg = info['page']
-        text = chunk_map.get(pg, '')
-
-        if info['needs_ocr']:
-            if tesseract_available and doc2 is not None:
-                try:
-                    page_obj = doc2[pg - 1]
-                    tp = page_obj.get_textpage_ocr(language='eng', dpi=300, full=True)
-                    ocr_text = page_obj.get_text(textpage=tp).strip()
-                    engine_used = 'pymupdf4llm+tesseract'
-                    if ocr_text:
-                        page_texts.append(f"\n\n---\n\n*Page {pg} [OCR]*\n\n{ocr_text}")
-                    else:
-                        page_texts.append(f"\n\n---\n\n*Page {pg} [SCANNED — OCR produced no text]*\n")
-                except Exception as ocr_err:
-                    page_texts.append(
-                        f"\n\n---\n\n*Page {pg} [SCANNED — OCR failed: {ocr_err}]*\n\n{text}"
-                    )
-            else:
-                # No Tesseract — annotate clearly
-                page_texts.append(
-                    f"\n\n---\n\n*Page {pg} [SCANNED — no selectable text. "
-                    f"Install Tesseract for OCR: `brew install tesseract`]*\n"
-                    + (f"\n{text}" if text else "")
-                )
-        else:
-            if text:
-                page_texts.append(f"\n\n---\n\n*Page {pg}*\n\n{text}")
-
-    if doc2:
-        doc2.close()
+            scanned_pages.append(i + 1)
+        page_info.append({'page': i + 1, 'words': word_count, 'needs_ocr': needs_ocr})
+        if text:
+            page_texts.append(f"\n\n---\n\n*Page {i + 1}*\n\n{text}")
+        elif needs_ocr:
+            page_texts.append(
+                f"\n\n---\n\n*Page {i + 1} [SCANNED — no selectable text]*\n"
+            )
 
     content = '\n'.join(page_texts)
+    ocr_ratio = len(scanned_pages) / total_pages if total_pages > 0 else 0
 
     return {
         'source': str(file_path),
         'filename': file_path.name,
         'type': 'pdf',
         'pages': total_pages,
-        'engine': engine_used,
+        'engine': 'pypdf',
         'scanned_pages': scanned_pages,
         'scanned_ratio': round(ocr_ratio, 2),
-        'ocr_available': tesseract_available,
+        'ocr_available': False,
         'ocr_hint': (
-            'Install Tesseract OCR for scanned pages: brew install tesseract (macOS) '
-            'or apt install tesseract-ocr (Linux)'
-            if scanned_pages and not tesseract_available else None
+            'Some pages appear to be scanned images with no selectable text.'
+            if scanned_pages else None
         ),
         'content': content,
         'page_stats': page_info,
         'metadata': {
-            'title': metadata.get('title', ''),
-            'author': metadata.get('author', ''),
-            'subject': metadata.get('subject', ''),
+            'title': meta.get('/Title', '') or '',
+            'author': meta.get('/Author', '') or '',
+            'subject': meta.get('/Subject', '') or '',
             'processed_at': datetime.datetime.now().isoformat(),
         },
         'processed_at': datetime.datetime.now().isoformat(),

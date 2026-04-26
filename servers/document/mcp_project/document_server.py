@@ -114,6 +114,10 @@ mcp = FastMCP("document-mcp")
 
 _ALLOWED_DIRS: list[str] = [EXCEL_DIR, PDF_DIR, WORD_DIR, OUTPUT_DIR, CSV_DIR, TEXT_DIR]
 
+# Docker volume mount roots — any path under these is safe because the host
+# filesystem is already mounted read-only by docker-compose.
+_DOCKER_MOUNT_ROOTS: list[str] = ["/host/home", "/host/volumes"]
+
 
 def _validate_path(path: str) -> str:
     """Resolve and verify a file path is within the server's allowed directories.
@@ -122,6 +126,12 @@ def _validate_path(path: str) -> str:
     Returns the resolved absolute path, or raises ValueError with a clear message.
     """
     resolved = os.path.realpath(os.path.abspath(path))
+
+    # Allow any path under the Docker read-only volume mounts.
+    for mount in _DOCKER_MOUNT_ROOTS:
+        if resolved.startswith(mount + os.sep) or resolved == mount:
+            return resolved
+
     for allowed in _ALLOWED_DIRS:
         allowed_resolved = os.path.realpath(os.path.abspath(allowed))
         if resolved.startswith(allowed_resolved + os.sep) or resolved == allowed_resolved:
