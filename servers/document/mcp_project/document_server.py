@@ -99,6 +99,8 @@ EXCEL_DIR = os.environ.get("EXCEL_DIR", "excel_files")
 PDF_DIR = os.environ.get("PDF_DIR", "../pdf_files")
 WORD_DIR = os.environ.get("WORD_DIR", "word_files")
 OUTPUT_DIR = os.environ.get("DOC_OUTPUT_DIR", "../output")
+CSV_DIR = os.environ.get("CSV_DIR", "csv_files")
+TEXT_DIR = os.environ.get("TEXT_DIR", "text_files")
 MAX_PAGES_PER_CHUNK = int(os.environ.get("PDF_MAX_PAGES_PER_CHUNK", "20"))
 
 # ─── Initialize MCP Server ───────────────────────────────────────────────────
@@ -110,7 +112,7 @@ mcp = FastMCP("document-mcp")
 # All configured directories that MCP tools are permitted to access.
 # Prevents path traversal attacks and enforces MCP Roots-style access boundaries.
 
-_ALLOWED_DIRS: list[str] = [EXCEL_DIR, PDF_DIR, WORD_DIR, OUTPUT_DIR]
+_ALLOWED_DIRS: list[str] = [EXCEL_DIR, PDF_DIR, WORD_DIR, OUTPUT_DIR, CSV_DIR, TEXT_DIR]
 
 
 def _validate_path(path: str) -> str:
@@ -128,7 +130,7 @@ def _validate_path(path: str) -> str:
         f"Access denied: path is outside allowed directories.\n"
         f"  Requested: {resolved}\n"
         f"  Allowed:   {_ALLOWED_DIRS}\n"
-        f"Tip: set EXCEL_DIR / PDF_DIR / WORD_DIR / DOC_OUTPUT_DIR env vars to include your files."
+        f"Tip: set EXCEL_DIR / PDF_DIR / WORD_DIR / DOC_OUTPUT_DIR / CSV_DIR / TEXT_DIR env vars to include your files."
     )
 
 
@@ -2110,6 +2112,322 @@ def _compute_agg(column: "pa.ChunkedArray", func: str):
     return result
 
 
+# ─── CSV Tools ────────────────────────────────────────────────────────────────
+
+
+@mcp.tool()
+def list_csv_files(directory: Optional[str] = None) -> str:
+    """List all CSV files in the configured CSV directory (or a custom path).
+
+    Args:
+        directory: Optional override directory. Defaults to CSV_DIR env var.
+
+    Returns:
+        JSON with list of CSV file paths, sizes, and row estimates.
+    """
+    search_dir = directory or CSV_DIR
+    try:
+        resolved = os.path.realpath(os.path.abspath(search_dir))
+        if not os.path.isdir(resolved):
+            return json.dumps({"error": f"Directory not found: {search_dir}"})
+        files = []
+        for p in sorted(Path(resolved).rglob("*.csv")):
+            size = p.stat().st_size
+            files.append({
+                "path": str(p),
+                "name": p.name,
+                "size_bytes": size,
+                "size_kb": round(size / 1024, 1),
+            })
+        return json.dumps({"directory": str(resolved), "files": files, "total": len(files)}, indent=2)
+    except Exception as exc:
+        return json.dumps({"error": str(exc)})
+
+
+@mcp.tool()
+def read_csv(
+    file_path: str,
+    row_limit: Optional[int] = None,
+    delimiter: str = ",",
+) -> str:
+    """Read a CSV file and return its contents as structured JSON.
+
+    Args:
+        file_path: Path to the CSV file.
+        row_limit: Maximum number of data rows to return (None = all).
+        delimiter: Field delimiter character (default: comma).
+
+    Returns:
+        JSON with columns, rows (list of dicts), row count, and file stats.
+    """
+    try:
+        resolved = _validate_path(file_path)
+    except ValueError as exc:
+        return json.dumps({"error": str(exc)})
+
+    try:
+        with open(resolved, newline="", encoding="utf-8-sig") as fh:
+            reader = csv.DictReader(fh, delimiter=delimiter)
+            rows = list(reader)
+
+        total_rows = len(rows)
+        columns = list(rows[0].keys()) if rows else []
+
+        if row_limit is not None:
+            rows = rows[:row_limit]
+
+        return json.dumps({
+            "file_path": file_path,
+            "file_name": Path(file_path).name,
+            "columns": columns,
+            "column_count": len(columns),
+            "total_rows": total_rows,
+            "returned_rows": len(rows),
+            "rows": rows,
+        }, indent=2, ensure_ascii=False)
+    except Exception as exc:
+        return json.dumps({"error": str(exc), "file_path": file_path})
+
+
+@mcp.tool()
+def chunk_csv_for_rag(
+    file_path: str,
+    rows_per_chunk: int = 50,
+    include_header_in_each_chunk: bool = True,
+    delimiter: str = ",",
+) -> str:
+    """Split a CSV file into text chunks ready for the indexer.
+
+    Each chunk is a plain-text block (header + rows) with a source_ref
+    indicating the row range, so citations point back to exact rows.
+
+    Args:
+        file_path: Path to the CSV file.
+        rows_per_chunk: Number of data rows per chunk (default 50).
+        include_header_in_each_chunk: Prepend column names to every chunk.
+        delimiter: Field delimiter (default: comma).
+
+    Returns:
+        JSON list of chunks, each with content and source_ref — ready to
+        pass directly to the indexer's index_chunks tool.
+    """
+    try:
+        resolved = _validate_path(file_path)
+    except ValueError as exc:
+        return json.dumps({"error": str(exc)})
+
+    try:
+        with open(resolved, newline="", encoding="utf-8-sig") as fh:
+            reader = csv.DictReader(fh, delimiter=delimiter)
+            all_rows = list(reader)
+
+        if not all_rows:
+            return json.dumps({"chunks": [], "total_chunks": 0, "file_path": file_path})
+
+        columns = list(all_rows[0].keys())
+        header_line = delimiter.join(columns)
+
+        chunks = []
+        for start in range(0, len(all_rows), rows_per_chunk):
+            batch = all_rows[start: start + rows_per_chunk]
+            end = start + len(batch)
+
+            lines = []
+            if include_header_in_each_chunk:
+                lines.append(header_line)
+            for row in batch:
+                lines.append(delimiter.join(str(row.get(c, "")) for c in columns))
+
+            content = "\n".join(lines)
+            source_ref = f"rows {start + 1}–{end}"
+
+            chunks.append({
+                "content": content,
+                "source_ref": source_ref,
+                "metadata": {
+                    "row_start": start + 1,
+                    "row_end": end,
+                    "columns": columns,
+                },
+            })
+
+        return json.dumps({
+            "file_path": file_path,
+            "file_name": Path(file_path).name,
+            "total_rows": len(all_rows),
+            "total_chunks": len(chunks),
+            "rows_per_chunk": rows_per_chunk,
+            "chunks": chunks,
+        }, indent=2, ensure_ascii=False)
+
+    except Exception as exc:
+        return json.dumps({"error": str(exc), "file_path": file_path})
+
+
+# ─── Plain-text / Markdown Tools ──────────────────────────────────────────────
+
+
+@mcp.tool()
+def list_text_files(directory: Optional[str] = None) -> str:
+    """List .txt and .md files in the configured text directory (or a custom path).
+
+    Args:
+        directory: Optional override directory. Defaults to TEXT_DIR env var.
+
+    Returns:
+        JSON with list of text file paths, sizes, and extensions.
+    """
+    search_dir = directory or TEXT_DIR
+    try:
+        resolved = os.path.realpath(os.path.abspath(search_dir))
+        if not os.path.isdir(resolved):
+            return json.dumps({"error": f"Directory not found: {search_dir}"})
+        files = []
+        for ext in ("*.txt", "*.md"):
+            for p in sorted(Path(resolved).rglob(ext)):
+                size = p.stat().st_size
+                files.append({
+                    "path": str(p),
+                    "name": p.name,
+                    "extension": p.suffix,
+                    "size_bytes": size,
+                    "size_kb": round(size / 1024, 1),
+                })
+        files.sort(key=lambda f: f["path"])
+        return json.dumps({"directory": str(resolved), "files": files, "total": len(files)}, indent=2)
+    except Exception as exc:
+        return json.dumps({"error": str(exc)})
+
+
+@mcp.tool()
+def read_text_file(file_path: str) -> str:
+    """Read a plain-text or Markdown file and return its content.
+
+    Args:
+        file_path: Path to a .txt or .md file.
+
+    Returns:
+        JSON with full content, line count, word count, and char count.
+    """
+    try:
+        resolved = _validate_path(file_path)
+    except ValueError as exc:
+        return json.dumps({"error": str(exc)})
+
+    try:
+        content = Path(resolved).read_text(encoding="utf-8")
+        lines = content.splitlines()
+        return json.dumps({
+            "file_path": file_path,
+            "file_name": Path(file_path).name,
+            "content": content,
+            "line_count": len(lines),
+            "word_count": len(content.split()),
+            "char_count": len(content),
+        }, indent=2, ensure_ascii=False)
+    except Exception as exc:
+        return json.dumps({"error": str(exc), "file_path": file_path})
+
+
+@mcp.tool()
+def chunk_text_for_rag(
+    file_path: str,
+    chunk_size: int = 512,
+    overlap: int = 50,
+    split_on_headings: bool = True,
+) -> str:
+    """Split a .txt or .md file into overlapping word-count chunks for RAG.
+
+    When split_on_headings is True (default), Markdown headings (## …) act as
+    hard boundaries before the fixed-size chunking is applied, so section
+    structure is preserved.  source_ref is either the nearest heading or the
+    word-offset range, enabling precise citations in the indexer.
+
+    Args:
+        file_path: Path to a .txt or .md file.
+        chunk_size: Target words per chunk (default 512).
+        overlap: Words of overlap between consecutive chunks (default 50).
+        split_on_headings: Use Markdown headings as hard split points first.
+
+    Returns:
+        JSON with chunks list (content + source_ref) ready for index_chunks.
+    """
+    try:
+        resolved = _validate_path(file_path)
+    except ValueError as exc:
+        return json.dumps({"error": str(exc)})
+
+    try:
+        content = Path(resolved).read_text(encoding="utf-8")
+    except Exception as exc:
+        return json.dumps({"error": str(exc), "file_path": file_path})
+
+    # ── Section splitting ───────────────────────────────────────────────────
+    heading_re = re.compile(r"^#{1,6}\s+.+", re.MULTILINE)
+
+    def _split_sections(text: str) -> list[tuple[str, str]]:
+        """Return [(heading_label, section_text), …]."""
+        matches = list(heading_re.finditer(text))
+        if not matches:
+            return [("", text)]
+        sections = []
+        for i, m in enumerate(matches):
+            label = m.group(0).lstrip("#").strip()
+            start = m.end()
+            end = matches[i + 1].start() if i + 1 < len(matches) else len(text)
+            sections.append((label, text[start:end].strip()))
+        return sections
+
+    sections: list[tuple[str, str]] = (
+        _split_sections(content) if split_on_headings else [("", content)]
+    )
+
+    # ── Word-window chunking within each section ────────────────────────────
+    chunks: list[dict] = []
+    global_word_offset = 0
+
+    def _word_chunks(text: str, heading: str) -> list[dict]:
+        nonlocal global_word_offset
+        words = text.split()
+        result = []
+        step = max(1, chunk_size - overlap)
+        for start in range(0, max(1, len(words)), step):
+            batch = words[start: start + chunk_size]
+            if not batch:
+                break
+            word_start = global_word_offset + start + 1
+            word_end = global_word_offset + start + len(batch)
+            ref = heading if heading else f"words {word_start}–{word_end}"
+            if heading and start > 0:
+                ref = f"{heading} (cont.)"
+            result.append({
+                "content": " ".join(batch),
+                "source_ref": ref,
+                "metadata": {
+                    "word_start": word_start,
+                    "word_end": word_end,
+                    "section": heading,
+                },
+            })
+        global_word_offset += len(words)
+        return result
+
+    for heading, section_text in sections:
+        if section_text.strip():
+            chunks.extend(_word_chunks(section_text, heading))
+
+    return json.dumps({
+        "file_path": file_path,
+        "file_name": Path(file_path).name,
+        "total_words": len(content.split()),
+        "total_chunks": len(chunks),
+        "chunk_size": chunk_size,
+        "overlap": overlap,
+        "split_on_headings": split_on_headings,
+        "chunks": chunks,
+    }, indent=2, ensure_ascii=False)
+
+
 @mcp.tool()
 def get_document_status() -> str:
     """
@@ -2154,6 +2472,8 @@ def get_document_status() -> str:
             "pdf_dir": os.path.abspath(PDF_DIR),
             "word_dir": os.path.abspath(WORD_DIR),
             "output_dir": os.path.abspath(OUTPUT_DIR),
+            "csv_dir": os.path.abspath(CSV_DIR),
+            "text_dir": os.path.abspath(TEXT_DIR),
         },
         "tools": {
             "excel": [
@@ -2198,6 +2518,16 @@ def get_document_status() -> str:
                 "parquet_schema",
                 "query_parquet",
                 "aggregate_parquet",
+            ],
+            "csv": [
+                "list_csv_files",
+                "read_csv",
+                "chunk_csv_for_rag",
+            ],
+            "text": [
+                "list_text_files",
+                "read_text_file",
+                "chunk_text_for_rag",
             ],
         },
     }, indent=2)
