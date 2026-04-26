@@ -1265,13 +1265,14 @@ async def _agentic_loop(
 
     # No servers — single LLM call, no tools
     if not servers:
-        return await asyncio.to_thread(_call_llm_sync, provider, model, messages), []
+        return await asyncio.to_thread(_call_llm_sync, provider, model, messages), [], []
 
     openai_tools, tool_registry, exit_stack = await _collect_mcp_tools(servers)
 
     async with exit_stack:
         tools_param = openai_tools if openai_tools else None
         tools_actually_called = []
+        kb_citations: List[dict] = []
 
         for iteration in range(MAX_ITERATIONS):
             # Call LLM (runs in thread so it doesn't block the event loop)
@@ -1287,7 +1288,7 @@ async def _agentic_loop(
 
             if not tool_calls:
                 # No tool calls — this is the final answer
-                return response, tools_actually_called
+                return response, tools_actually_called, kb_citations
 
             # ── Tell the UI which tools are being used ──────────────────────
             tool_names = [tc['name'] for tc in tool_calls]
@@ -1321,6 +1322,12 @@ async def _agentic_loop(
                             if hasattr(block, 'text')
                         ]
                         result_text = '\n'.join(texts) if texts else 'Tool returned no content.'
+                        if tool_name == 'query':
+                            try:
+                                parsed = json.loads(result_text)
+                                kb_citations.extend(parsed.get('citations', []))
+                            except (json.JSONDecodeError, AttributeError):
+                                pass
                     except Exception as e:
                         result_text = f'Tool execution error: {e}'
                 else:
@@ -1340,7 +1347,7 @@ async def _agentic_loop(
             'status': 'thinking',
             'message': 'Synthesising final answer...',
         }, room=sid)
-        return await asyncio.to_thread(_call_llm_sync, provider, model, messages), tools_actually_called
+        return await asyncio.to_thread(_call_llm_sync, provider, model, messages), tools_actually_called, kb_citations
 
 
 def process_chat_message(sid: str, message: str, config: dict, request_id: str = None):
@@ -1485,7 +1492,7 @@ def process_chat_message(sid: str, message: str, config: dict, request_id: str =
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
         try:
-            response, tools_called = loop.run_until_complete(
+            response, tools_called, kb_citations = loop.run_until_complete(
                 _agentic_loop(provider, model, messages, enabled_servers, sid, request_id)
             )
         finally:
@@ -1516,7 +1523,8 @@ def process_chat_message(sid: str, message: str, config: dict, request_id: str =
             'message': content,
             'model': model,
             'requestId': request_id,
-            'tools_used': tools_called if tools_called else None
+            'tools_used': tools_called if tools_called else None,
+            'citations': kb_citations if kb_citations else None,
         }, room=sid)
 
     except Exception as e:
