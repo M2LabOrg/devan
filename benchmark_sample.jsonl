@@ -1,0 +1,10 @@
+{"question": "What is the main topic or purpose of the documents in this collection?", "expected_answer": ""}
+{"question": "What are the key findings, conclusions, or recommendations?", "expected_answer": ""}
+{"question": "What time period, date range, or fiscal year does the data cover?", "expected_answer": ""}
+{"question": "Are there any numerical results, statistics, or financial figures mentioned?", "expected_answer": ""}
+{"question": "What methodology, data sources, or tools are described?", "expected_answer": ""}
+{"question": "Who are the authors, organisations, or stakeholders referenced?", "expected_answer": ""}
+{"question": "What risks, limitations, or caveats are identified?", "expected_answer": ""}
+{"question": "What action items, next steps, or future work are outlined?", "expected_answer": ""}
+{"question": "Are there any tables, charts, or figures summarised in the text?", "expected_answer": ""}
+{"question": "What terminology or domain-specific concepts are defined or used?", "expected_answer": ""}

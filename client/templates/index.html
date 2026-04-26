@@ -1174,6 +1174,10 @@
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 3h18v4H3z"/><path d="M3 10h18v4H3z"/><path d="M3 17h18v4H3z"/></svg>
                   Batch Folder
                 </button>
+                <button class="action-chip" id="kbChip" onclick="openKbModal()">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/><path d="M9 7h6M9 11h6M9 15h4"/></svg>
+                  Knowledge Base
+                </button>
                 <button class="action-chip" onclick="openScraperModal()">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
                   Web Scraper
@@ -2998,6 +3002,168 @@
         await restoreScrapeTrackerFromServer();
       }
     }
+
+    // ══════════════════════════════════
+    // KNOWLEDGE BASE (RAG) INDEXING
+    // ══════════════════════════════════
+
+    let _kbSessionId = null;
+
+    function openKbModal() {
+      const existing = document.getElementById('kbModal');
+      if (existing) existing.remove();
+
+      const modal = document.createElement('div');
+      modal.id = 'kbModal';
+      modal.style.cssText = 'position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;background:rgba(26,26,46,0.5);backdrop-filter:blur(4px);animation:pageReveal .3s ease forwards;';
+      modal.innerHTML = `
+        <div style="background:var(--paper);border-radius:20px;padding:2rem;max-width:580px;width:92%;box-shadow:var(--shadow-lg);position:relative;">
+          <button onclick="document.getElementById('kbModal').remove()" style="position:absolute;top:1rem;right:1rem;background:none;border:none;cursor:pointer;color:var(--ink-muted);font-size:1.2rem;">✕</button>
+          <h2 style="font-family:var(--font-serif);font-weight:400;margin-bottom:.35rem;">Knowledge Base</h2>
+          <p style="font-size:.8rem;color:var(--ink-muted);margin-bottom:.85rem;">Index a folder of documents. Once indexed, ask questions in the chat and get cited answers.</p>
+          <div style="display:flex;gap:.4rem;margin-bottom:1.25rem;flex-wrap:wrap;">
+            <span style="font-size:.7rem;padding:.2rem .55rem;background:var(--paper-warm);border:1px solid var(--glass-border);border-radius:20px;color:var(--ink-light);">PDF</span>
+            <span style="font-size:.7rem;padding:.2rem .55rem;background:var(--paper-warm);border:1px solid var(--glass-border);border-radius:20px;color:var(--ink-light);">Excel</span>
+            <span style="font-size:.7rem;padding:.2rem .55rem;background:var(--paper-warm);border:1px solid var(--glass-border);border-radius:20px;color:var(--ink-light);">Word</span>
+            <span style="font-size:.7rem;padding:.2rem .55rem;background:var(--paper-warm);border:1px solid var(--glass-border);border-radius:20px;color:var(--ink-light);">CSV</span>
+            <span style="font-size:.7rem;padding:.2rem .55rem;background:var(--paper-warm);border:1px solid var(--glass-border);border-radius:20px;color:var(--ink-light);">TXT / MD</span>
+            <span style="font-size:.7rem;padding:.2rem .55rem;background:var(--paper-warm);border:1px solid var(--glass-border);border-radius:20px;color:var(--ink-light);">Parquet</span>
+          </div>
+
+          ${_kbSessionId ? `
+          <div style="padding:.65rem .9rem;background:#f0faf0;border:1px solid #b6e2b6;border-radius:10px;margin-bottom:1.1rem;display:flex;align-items:center;gap:.6rem;">
+            <svg viewBox="0 0 24 24" fill="none" stroke="#2d7d32" stroke-width="2" style="width:14px;height:14px;flex-shrink:0"><polyline points="20 6 9 17 4 12"/></svg>
+            <span style="font-size:.78rem;color:#2d7d32;font-weight:500;">Active KB session: <code style="font-family:monospace;font-size:.75rem;">${_kbSessionId.slice(0,8)}…</code></span>
+            <button onclick="clearKbSession()" style="margin-left:auto;background:none;border:1px solid #b6e2b6;border-radius:6px;cursor:pointer;padding:.2rem .5rem;font-size:.7rem;color:#2d7d32;">Clear</button>
+          </div>` : ''}
+
+          <div style="margin-bottom:1.1rem;">
+            <label style="font-size:.72rem;font-weight:600;letter-spacing:.06em;color:var(--ink-muted);text-transform:uppercase;display:block;margin-bottom:.35rem;">Source Folder</label>
+            <div style="display:flex;gap:.5rem;">
+              <input id="kbFolderPath" type="text" placeholder="/Users/you/Documents/reports" style="flex:1;padding:.6rem .9rem;border:1px solid var(--glass-border);border-radius:10px;font-size:.8rem;background:var(--paper-cool);color:var(--ink);outline:none;font-family:monospace;">
+              <button onclick="openFolderBrowser('kbFolderPath')" style="padding:.5rem .75rem;background:var(--paper-warm);border:1px solid var(--glass-border);border-radius:10px;cursor:pointer;font-size:.75rem;color:var(--ink-light);white-space:nowrap;" title="Browse folders">📁 Browse</button>
+            </div>
+          </div>
+
+          <button id="kbStartBtn" onclick="startKbIndexing()" style="width:100%;padding:.75rem;background:var(--ink);color:white;border:none;border-radius:12px;cursor:pointer;font-size:.85rem;font-weight:500;transition:opacity .2s;margin-bottom:1rem;">
+            Index Folder
+          </button>
+
+          <div id="kbProgress" style="display:none;border:1px solid var(--glass-border);border-radius:12px;overflow:hidden;">
+            <div id="kbStatusBanner" style="padding:.6rem .9rem;background:var(--paper-warm);border-bottom:1px solid var(--glass-border);display:flex;align-items:center;gap:.6rem;">
+              <span id="kbStatusSpinner" style="display:inline-block;width:12px;height:12px;border:2px solid var(--accent);border-top-color:transparent;border-radius:50%;animation:spin .7s linear infinite;flex-shrink:0;"></span>
+              <span id="kbStatusLabel" style="font-size:.8rem;font-weight:500;color:var(--ink);">Starting…</span>
+            </div>
+            <div style="padding:.5rem .75rem .4rem;">
+              <div style="height:4px;background:var(--paper-cool);border-radius:2px;overflow:hidden;margin-bottom:.5rem;">
+                <div id="kbProgressBar" style="height:100%;width:0%;background:var(--accent);transition:width .4s var(--ease-out);border-radius:2px;"></div>
+              </div>
+              <div id="kbProgressText" style="font-size:.74rem;color:var(--ink-muted);font-family:monospace;line-height:1.8;max-height:140px;overflow-y:auto;padding-bottom:.3rem;"></div>
+            </div>
+          </div>
+        </div>`;
+      document.body.appendChild(modal);
+      modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
+    }
+
+    async function startKbIndexing() {
+      const folderPath = document.getElementById('kbFolderPath')?.value.trim();
+      if (!folderPath) { showToast('Enter a folder path first'); return; }
+
+      const btn = document.getElementById('kbStartBtn');
+      btn.disabled = true;
+      btn.textContent = 'Indexing…';
+
+      document.getElementById('kbProgress').style.display = 'block';
+      document.getElementById('kbProgressBar').style.width = '0%';
+      document.getElementById('kbProgressText').textContent = '';
+      document.getElementById('kbStatusLabel').textContent = 'Connecting to servers…';
+
+      try {
+        const resp = await fetch('/api/index/start', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ folder_path: folderPath, sid: socket.id }),
+        });
+        const data = await resp.json();
+        if (data.error) { showToast(data.error); btn.disabled = false; btn.textContent = 'Index Folder'; return; }
+
+        _kbSessionId = data.session_id;
+        document.getElementById('kbStatusLabel').textContent =
+          `Indexing ${data.total_files} file${data.total_files !== 1 ? 's' : ''}…`;
+      } catch (e) {
+        showToast('Failed to start indexing: ' + e.message);
+        btn.disabled = false;
+        btn.textContent = 'Index Folder';
+      }
+    }
+
+    function clearKbSession() {
+      _kbSessionId = null;
+      socket.emit('set_index_session', { session_id: '' });
+      updateKbPill();
+      document.getElementById('kbModal')?.remove();
+      showToast('Knowledge base cleared');
+    }
+
+    function updateKbPill() {
+      const chip = document.getElementById('kbChip');
+      if (!chip) return;
+      if (_kbSessionId) {
+        chip.style.background = 'var(--success, #27ae60)';
+        chip.style.color = 'white';
+        chip.style.borderColor = 'var(--success, #27ae60)';
+      } else {
+        chip.style.background = '';
+        chip.style.color = '';
+        chip.style.borderColor = '';
+      }
+    }
+
+    // Socket.IO listeners for indexing events
+    socket.on('index_progress', data => {
+      if (data.session_id !== _kbSessionId) return;
+      const pct = data.total > 0 ? Math.round((data.done / data.total) * 100) : 0;
+      const bar = document.getElementById('kbProgressBar');
+      const label = document.getElementById('kbStatusLabel');
+      const log = document.getElementById('kbProgressText');
+      if (bar) bar.style.width = pct + '%';
+      if (label) label.textContent = `[${data.done}/${data.total}] ${data.file}`;
+      if (log) {
+        log.textContent += `[${data.done + 1}/${data.total}] ${data.file}\n`;
+        log.scrollTop = log.scrollHeight;
+      }
+    });
+
+    socket.on('index_complete', data => {
+      if (data.session_id !== _kbSessionId) return;
+      const bar = document.getElementById('kbProgressBar');
+      const label = document.getElementById('kbStatusLabel');
+      const spinner = document.getElementById('kbStatusSpinner');
+      const btn = document.getElementById('kbStartBtn');
+      const log = document.getElementById('kbProgressText');
+
+      if (data.error) {
+        if (label) label.textContent = 'Error: ' + data.error;
+        if (spinner) spinner.style.display = 'none';
+        if (btn) { btn.disabled = false; btn.textContent = 'Index Folder'; }
+        return;
+      }
+
+      if (bar) bar.style.width = '100%';
+      if (spinner) { spinner.style.borderColor = '#27ae60'; spinner.style.borderTopColor = 'transparent'; }
+      if (label) label.textContent = `Done — ${data.files_indexed} files, ${data.total_chunks} chunks`;
+      if (log && data.errors?.length) {
+        log.textContent += data.errors.map(e => `WARN: ${e}`).join('\n') + '\n';
+        log.scrollTop = log.scrollHeight;
+      }
+      if (btn) { btn.disabled = false; btn.textContent = 'Re-index Folder'; }
+
+      // Activate the KB session in chat
+      socket.emit('set_index_session', { session_id: _kbSessionId });
+      updateKbPill();
+      showToast(`Knowledge base ready — ${data.total_chunks} chunks indexed`);
+    });
 
     // ══════════════════════════════════
     // BATCH PROCESSING WITH PROJECTS

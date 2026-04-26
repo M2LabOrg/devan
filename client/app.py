@@ -130,6 +130,14 @@ MCP_SERVERS = [
         command="uv",
         args=["run", "data_modelling_server.py"]
     ),
+    MCPServer(
+        id="indexer_mcp",
+        name="Document Indexer MCP",
+        description="SQLite-backed RAG index: store chunks from any document type and answer questions with cited sources using the query tool",
+        path=str(PROJECT_ROOT / "servers" / "indexer" / "mcp_project"),
+        command="uv",
+        args=["run", "indexer_server.py"]
+    ),
 ]
 
 # Default LLM providers
@@ -160,6 +168,16 @@ DEFAULT_LLM_PROVIDERS = [
 # Global state
 active_sessions: Dict[str, Dict] = {}
 config_file = PROJECT_ROOT / "client" / "config.json"
+# Tracks active indexer session per Socket.IO session (sid → indexer session_id)
+index_sessions: Dict[str, str] = {}
+
+# Supported extensions for the knowledge-base indexing pipeline
+_INDEXABLE_EXTENSIONS = {
+    '.pdf', '.xlsx', '.xls', '.xlsm',
+    '.csv', '.txt', '.md',
+    '.docx', '.doc',
+    '.parquet',
+}
 
 
 # Sandbox-approved providers — sandbox mode restricts to local/approved
@@ -1409,6 +1427,17 @@ def process_chat_message(sid: str, message: str, config: dict, request_id: str =
         if files:
             file_context = "Files available:\n" + "\n".join([f"- {f['name']}" for f in files])
             messages.append({'role': 'system', 'content': file_context})
+
+        # Inject active knowledge-base session so the LLM knows to use the indexer
+        if sid in index_sessions:
+            kb_sid = index_sessions[sid]
+            kb_context = (
+                f"A knowledge base is indexed under session_id=\"{kb_sid}\". "
+                "When the user asks questions about documents or data, call the "
+                f"`query` tool with session_id=\"{kb_sid}\" to retrieve cited answers. "
+                "Use `list_indexed_files` to see which files are in the index."
+            )
+            messages.append({'role': 'system', 'content': kb_context})
         
         # Add conversation history (last 20 messages to keep context manageable)
         history = chat_histories.get(sid, [])
@@ -1522,6 +1551,17 @@ def handle_clear_history():
         chat_histories[sid] = []
     if sid in uploaded_files:
         uploaded_files[sid] = []
+
+
+@socketio.on('set_index_session')
+def handle_set_index_session(data):
+    """Associate (or clear) an indexer session_id with this Socket.IO session."""
+    sid = request.sid
+    session_id = (data or {}).get('session_id', '').strip()
+    if session_id:
+        index_sessions[sid] = session_id
+    else:
+        index_sessions.pop(sid, None)
 
 
 @app.route('/api/upload', methods=['POST'])
@@ -2495,6 +2535,250 @@ def _run_batch_processing(job_id: str, files: list, source_path: Path, output_pa
     })
 
 
+# ── Knowledge-Base Indexing Pipeline ─────────────────────────────────────────
+
+def _simple_word_chunks(text: str, chunk_size: int = 512, overlap: int = 50) -> list[dict]:
+    """Split plain text into overlapping word-window chunks."""
+    words = text.split()
+    chunks = []
+    step = max(1, chunk_size - overlap)
+    for start in range(0, max(1, len(words)), step):
+        batch = words[start: start + chunk_size]
+        if not batch:
+            break
+        chunks.append({
+            "content": " ".join(batch),
+            "source_ref": f"words {start + 1}–{start + len(batch)}",
+        })
+    return chunks
+
+
+async def _extract_chunks_via_mcp(file_path: Path, tool_registry: dict) -> list[dict]:
+    """Call the document MCP server to extract RAG chunks for a single file."""
+    ext = file_path.suffix.lower()
+    fp = str(file_path)
+
+    async def _call(tool: str, args: dict) -> dict:
+        reg = tool_registry.get(tool)
+        if not reg:
+            return {}
+        result = await reg['session'].call_tool(tool, args)
+        texts = [b.text for b in (result.content or []) if hasattr(b, 'text')]
+        if not texts:
+            return {}
+        try:
+            return json.loads(texts[0])
+        except Exception:
+            return {}
+
+    chunks: list[dict] = []
+
+    if ext == '.pdf':
+        data = await _call('chunk_pdf_for_rag', {'file_path': fp})
+        for c in data.get('chunks', []):
+            text = c.get('text', '').strip()
+            if text:
+                chunks.append({
+                    'content': text,
+                    'source_ref': (
+                        f"pages {c['page_start']}–{c['page_end']}"
+                        if 'page_start' in c
+                        else f"chunk {c.get('chunk_index', 0) + 1}"
+                    ),
+                })
+
+    elif ext in {'.xlsx', '.xls', '.xlsm'}:
+        data = await _call('chunk_excel_content', {'file_path': fp})
+        for c in data.get('chunks', []):
+            text = c.get('text', '').strip()
+            if text:
+                page = (c.get('metadata') or {}).get('page_number')
+                ref = f"page {page}" if page else f"chunk {c.get('chunk_number', 1)}"
+                chunks.append({'content': text, 'source_ref': ref})
+
+    elif ext == '.csv':
+        data = await _call('chunk_csv_for_rag', {'file_path': fp})
+        for c in data.get('chunks', []):
+            if c.get('content', '').strip():
+                chunks.append({'content': c['content'], 'source_ref': c.get('source_ref', '')})
+
+    elif ext in {'.txt', '.md'}:
+        data = await _call('chunk_text_for_rag', {'file_path': fp})
+        for c in data.get('chunks', []):
+            if c.get('content', '').strip():
+                chunks.append({'content': c['content'], 'source_ref': c.get('source_ref', '')})
+
+    elif ext in {'.docx', '.doc'}:
+        data = await _call('word_to_markdown', {'file_path': fp})
+        markdown = data.get('markdown', '').strip()
+        if markdown:
+            chunks = _simple_word_chunks(markdown)
+
+    elif ext == '.parquet':
+        data = await _call('read_parquet', {'file_path': fp, 'row_limit': 2000})
+        # read_parquet returns a markdown table or JSON; treat as one text block
+        content = data.get('content', '') or data.get('markdown', '') or str(data)
+        content = content.strip()
+        if content:
+            chunks = _simple_word_chunks(content)
+
+    return chunks
+
+
+async def _index_folder_async(folder_path: str, session_id: str, sid: str) -> None:
+    """Connect to document + indexer MCP servers, walk folder, index all files."""
+    folder = Path(folder_path)
+    files = sorted([
+        f for f in folder.rglob('*')
+        if f.is_file()
+        and f.suffix.lower() in _INDEXABLE_EXTENSIONS
+        and not f.name.startswith('.')
+        and '.venv' not in f.parts
+        and '__pycache__' not in f.parts
+    ])
+
+    if not files:
+        socketio.emit('index_complete', {
+            'session_id': session_id,
+            'files_indexed': 0,
+            'total_chunks': 0,
+            'error': 'No supported files found in the selected folder.',
+        }, room=sid)
+        return
+
+    doc_server = next((s for s in MCP_SERVERS if s.id == 'document_mcp'), None)
+    idx_server = next((s for s in MCP_SERVERS if s.id == 'indexer_mcp'), None)
+    if not doc_server or not idx_server:
+        socketio.emit('index_complete', {
+            'session_id': session_id, 'error': 'document_mcp or indexer_mcp not configured.',
+        }, room=sid)
+        return
+
+    _, tool_registry, exit_stack = await _collect_mcp_tools([
+        asdict(doc_server), asdict(idx_server)
+    ])
+
+    async with exit_stack:
+        # Create indexer session
+        cs = tool_registry.get('create_session')
+        if not cs:
+            socketio.emit('index_complete', {
+                'session_id': session_id, 'error': 'Indexer MCP not connected.',
+            }, room=sid)
+            return
+
+        await cs['session'].call_tool('create_session', {
+            'session_id': session_id,
+            'metadata': json.dumps({'folder': str(folder)}),
+        })
+
+        total_chunks = 0
+        files_done = 0
+        errors = []
+
+        for file_path in files:
+            socketio.emit('index_progress', {
+                'session_id': session_id,
+                'file': file_path.name,
+                'done': files_done,
+                'total': len(files),
+                'chunks_so_far': total_chunks,
+            }, room=sid)
+
+            try:
+                chunks = await _extract_chunks_via_mcp(file_path, tool_registry)
+                if chunks:
+                    ic = tool_registry.get('index_chunks')
+                    if ic:
+                        result = await ic['session'].call_tool('index_chunks', {
+                            'session_id': session_id,
+                            'file_path': str(file_path),
+                            'chunks': chunks,
+                        })
+                        texts = [b.text for b in (result.content or []) if hasattr(b, 'text')]
+                        data = json.loads(texts[0]) if texts else {}
+                        total_chunks += data.get('indexed', 0)
+            except Exception as exc:
+                errors.append(f"{file_path.name}: {exc}")
+                logging.warning(f"Index error for {file_path.name}: {exc}")
+
+            files_done += 1
+
+    socketio.emit('index_complete', {
+        'session_id': session_id,
+        'files_indexed': files_done,
+        'total_chunks': total_chunks,
+        'errors': errors,
+    }, room=sid)
+
+
+def _index_folder_bg(folder_path: str, session_id: str, sid: str) -> None:
+    """Thread entry point: run the async indexing pipeline."""
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    try:
+        loop.run_until_complete(_index_folder_async(folder_path, session_id, sid))
+    except Exception as exc:
+        socketio.emit('index_complete', {
+            'session_id': session_id,
+            'error': str(exc),
+        }, room=sid)
+    finally:
+        loop.close()
+
+
+@app.route('/api/index/start', methods=['POST'])
+def index_start():
+    """Start background indexing of a folder into the knowledge base.
+
+    Body JSON: { "folder_path": "/abs/path", "sid": "<socket-io-sid>" }
+    Returns: { "session_id": "<uuid>", "status": "started", "total_files": N }
+    """
+    data = request.json or {}
+    folder_path = data.get('folder_path', '').strip()
+    sid = data.get('sid', '').strip()
+
+    if not folder_path:
+        return jsonify({'error': 'folder_path is required'}), 400
+
+    folder = Path(folder_path).expanduser().resolve()
+    if not folder.exists() or not folder.is_dir():
+        return jsonify({'error': f'Not a directory: {folder_path}'}), 400
+
+    # Count files for the immediate response
+    files = [
+        f for f in folder.rglob('*')
+        if f.is_file()
+        and f.suffix.lower() in _INDEXABLE_EXTENSIONS
+        and not f.name.startswith('.')
+        and '.venv' not in f.parts
+        and '__pycache__' not in f.parts
+    ]
+
+    session_id = str(uuid.uuid4())
+
+    threading.Thread(
+        target=_index_folder_bg,
+        args=(str(folder), session_id, sid),
+        daemon=True,
+    ).start()
+
+    return jsonify({
+        'session_id': session_id,
+        'status': 'started',
+        'total_files': len(files),
+        'folder': str(folder),
+    })
+
+
+@app.route('/api/index/status', methods=['GET'])
+def index_status():
+    """Return the indexer session currently active for a given Socket.IO sid."""
+    sid = request.args.get('sid', '').strip()
+    session_id = index_sessions.get(sid, '')
+    return jsonify({'session_id': session_id, 'active': bool(session_id)})
+
+
 @app.route('/api/prepare_vscode', methods=['POST'])
 def prepare_vscode():
     """
@@ -2599,8 +2883,9 @@ def _generate_vscode_script(source_path: Path, output_path: Path, files: list, s
         f.write('\n'.join(requirements) + '\n')
 
     prompt_line = f'PROCESSING_PROMPT = {repr(prompt)}' if prompt else 'PROCESSING_PROMPT = ""  # No prompt specified'
+    _datetime_now = datetime.now().isoformat()
 
-    script = f'''#!/usr/bin/env python3
+    script = '''#!/usr/bin/env python3
 """
 Batch Processing Script — Generated by MCP Client UI
 =====================================================
@@ -2609,7 +2894,7 @@ Process PDF, Excel, and Word files for LLM/RAG pipelines.
 This script was auto-generated for VS Code processing.
 Run it directly or step through with the VS Code debugger.
 
-Generated: {datetime.now().isoformat()}
+Generated: __DATETIME_NOW__
 """
 
 import json
@@ -2619,14 +2904,14 @@ from pathlib import Path
 from typing import Dict, List, Any
 
 # Configuration (auto-generated)
-SOURCE_FOLDER = Path(r"{source_path}")
-OUTPUT_FOLDER = Path(r"{output_path}")
+SOURCE_FOLDER = Path(r"__SOURCE_PATH__")
+OUTPUT_FOLDER = Path(r"__OUTPUT_PATH__")
 SCRIPT_DIR = Path(__file__).parent
-{prompt_line}
+__PROMPT_LINE__
 
 # Files to process
 FILES_TO_PROCESS: List[Path] = [
-    {file_list_str}
+    __FILE_LIST_STR__
 ]
 # Note: Full file list is loaded dynamically below
 
@@ -2886,6 +3171,13 @@ if __name__ == '__main__':
     if check_and_setup_environment():
         run_batch_processing()
 '''
+    script = (script
+        .replace('__DATETIME_NOW__', _datetime_now)
+        .replace('__SOURCE_PATH__', str(source_path))
+        .replace('__OUTPUT_PATH__', str(output_path))
+        .replace('__PROMPT_LINE__', prompt_line)
+        .replace('__FILE_LIST_STR__', file_list_str)
+    )
     return script
 
 
