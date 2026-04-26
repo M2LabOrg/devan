@@ -18,6 +18,8 @@ services:
       # Inside the container, host paths appear under /host/home/.
       # Example: ~/Documents/reports → /host/home/Documents/reports
       - ~/:/host/home:ro
+      # Mount external volumes (LaCie and other /Volumes drives)
+      - /Volumes:/host/volumes:ro
     depends_on:
       ollama:
         condition: service_healthy
