@@ -1,0 +1,14 @@
+._*
+**/._*
+.DS_Store
+__pycache__/
+*.pyc
+*.pyo
+.git/
+.venv/
+venv/
+benchmark/data/
+benchmark_indexer.db
+benchmark_results.json
+src-tauri/target/
+node_modules/
