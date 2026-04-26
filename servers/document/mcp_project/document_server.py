@@ -1196,7 +1196,26 @@ def extract_pdf(file_path: str, engine: str = "auto", page_range: Optional[str] 
     if not os.path.exists(file_path):
         return json.dumps({"error": f"File not found: {file_path}"}, indent=2)
     if not DOCLING_AVAILABLE:
-        return json.dumps({"error": "Docling not installed. Run: uv add docling"}, indent=2)
+        # Lightweight pypdf fallback — text only, no tables/OCR
+        try:
+            reader = PdfReader(file_path)
+            pages_text = []
+            for i, page in enumerate(reader.pages):
+                text = (page.extract_text() or "").strip()
+                if text:
+                    pages_text.append(f"<!-- Page {i+1} -->\n{text}")
+            markdown = "\n\n".join(pages_text)
+            return json.dumps({
+                "file_path": file_path,
+                "content_markdown": markdown,
+                "total_pages": len(reader.pages),
+                "total_words": len(markdown.split()),
+                "total_tables": 0,
+                "total_figures": 0,
+                "engine": "pypdf",
+            }, indent=2)
+        except Exception as e:
+            return json.dumps({"error": f"pypdf extraction failed: {e}"}, indent=2)
     try:
         result = _extract_pdf_with_docling(file_path)
         return json.dumps(asdict(result), indent=2)

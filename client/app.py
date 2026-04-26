@@ -2754,14 +2754,17 @@ def index_start():
         return jsonify({'error': f'Not a directory: {folder_path}'}), 400
 
     # Count files for the immediate response
-    files = [
-        f for f in folder.rglob('*')
-        if f.is_file()
-        and f.suffix.lower() in _INDEXABLE_EXTENSIONS
-        and not f.name.startswith('.')
-        and '.venv' not in f.parts
-        and '__pycache__' not in f.parts
-    ]
+    files = []
+    for f in folder.rglob('*'):
+        try:
+            if (f.is_file()
+                    and f.suffix.lower() in _INDEXABLE_EXTENSIONS
+                    and not f.name.startswith('.')
+                    and '.venv' not in f.parts
+                    and '__pycache__' not in f.parts):
+                files.append(f)
+        except (PermissionError, OSError):
+            continue
 
     session_id = str(uuid.uuid4())
 
