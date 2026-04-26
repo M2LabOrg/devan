@@ -7,10 +7,13 @@ updates:
     schedule:
       interval: weekly
       day: monday
+    rebase-strategy: disabled
+    labels:
+      - dependencies
     groups:
       python-client:
         patterns: ["*"]
-    open-pull-requests-limit: 2
+    open-pull-requests-limit: 1
 
   # Python — MCP servers (all batched into one PR)
   - package-ecosystem: pip
@@ -28,17 +31,36 @@ updates:
     schedule:
       interval: weekly
       day: monday
+    rebase-strategy: disabled
+    labels:
+      - dependencies
     groups:
       mcp-servers:
         patterns: ["*"]
-    open-pull-requests-limit: 2
+    open-pull-requests-limit: 1
 
   # Rust — Tauri desktop app (monthly; Cargo churn is high)
   - package-ecosystem: cargo
     directory: /src-tauri
     schedule:
       interval: monthly
+    rebase-strategy: disabled
+    labels:
+      - dependencies
     groups:
       rust-deps:
+        patterns: ["*"]
+    open-pull-requests-limit: 1
+
+  # GitHub Actions — workflow dependencies
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly
+    rebase-strategy: disabled
+    labels:
+      - dependencies
+    groups:
+      github-actions:
         patterns: ["*"]
     open-pull-requests-limit: 1
