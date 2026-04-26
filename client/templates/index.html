@@ -1010,6 +1010,18 @@
       <span style="font-size:.65rem;">VS Code</span>
     </button>
 
+    <!-- Knowledge Base shortcut -->
+    <button class="status-pill new-chat-btn" id="kbTopBtn" onclick="openKbModal()" title="Knowledge Base — index and query your documents" style="gap:5px;">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" style="width:13px;height:13px;flex-shrink:0"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+      <span style="font-size:.65rem;">KB</span>
+    </button>
+
+    <!-- Settings button -->
+    <button class="status-pill new-chat-btn" onclick="openSettingsModal()" title="Settings — MCP servers, LLM providers, preferences" style="gap:5px;">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" style="width:13px;height:13px;flex-shrink:0"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+      <span style="font-size:.65rem;">Settings</span>
+    </button>
+
     <!-- Sandbox Mode toggle — localhost only, guardrails enforced, audit enabled -->
     <!-- Click = toggle sandbox | Shift+click = open audit log viewer -->
     <div class="status-pill" id="compliancePill"
@@ -3108,6 +3120,187 @@
       document.body.appendChild(modal);
       modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
     }
+
+    // ── Settings Modal ──────────────────────────────────────────────────────────
+    // Inline toggle helper — avoids complex onclick escaping inside template literals
+    async function _stoggle(serverId) {
+      const srv = config.mcp_servers.find(s => s.id === serverId);
+      if (!srv) return;
+      const newEnabled = !srv.enabled;
+      if (config.compliance_mode && serverId === 'guardrail_mcp' && !newEnabled) {
+        showToast('Cannot disable Safety Filter while Sandbox Mode is active');
+        return;
+      }
+      // Optimistic UI update
+      srv.enabled = newEnabled;
+      const track = document.querySelector('[data-sttrack="' + serverId + '"]');
+      const knob  = document.querySelector('[data-stknob="'  + serverId + '"]');
+      if (track) track.style.background = newEnabled ? 'var(--ink)' : '#cbd5e1';
+      if (knob)  knob.style.left = newEnabled ? '18px' : '2px';
+      // Persist and refresh chips/pills
+      await fetch('/api/mcp/toggle', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ server_id: serverId, enabled: newEnabled })
+      });
+      renderMCPChips();
+      updateStatusPills();
+    }
+
+    function switchSettingsTab(tab) {
+      ['servers', 'llm', 'general'].forEach(t => {
+        const panel = document.getElementById('stab-' + t);
+        const btn   = document.getElementById('stabtn-' + t);
+        if (!panel || !btn) return;
+        const active = t === tab;
+        panel.style.display = active ? 'block' : 'none';
+        btn.style.borderBottom = active ? '2px solid var(--ink)' : '2px solid transparent';
+        btn.style.color        = active ? 'var(--ink)' : 'var(--ink-muted)';
+        btn.style.fontWeight   = active ? '600' : '400';
+      });
+    }
+
+    function openSettingsModal(initialTab) {
+      initialTab = initialTab || 'servers';
+      const existing = document.getElementById('settingsModal');
+      if (existing) existing.remove();
+
+      const displayNames = {
+        'document_mcp':       'Excel / PDF Extraction',
+        'indexer_mcp':        'Document Indexer MCP',
+        'prompt_mcp':         'Prompt Library',
+        'guardrail_mcp':      'Safety Filter',
+        'webdesign_mcp':      'React Page Generator',
+        'webscraper_mcp':     'Web Scraper',
+        'excel_pipeline_mcp': 'Excel Modelling & Validation',
+        'data_modelling_mcp': 'Data Modelling',
+      };
+      const serverDesc = {
+        'document_mcp':       'Extract text and tables from PDF, Excel, Word, CSV and Parquet files.',
+        'indexer_mcp':        'Index documents into a session for cited Q&A across your knowledge base.',
+        'prompt_mcp':         'Structured prompt templates for common document and analysis tasks.',
+        'guardrail_mcp':      'Safety and PII filter on all LLM outputs. Required in Sandbox mode.',
+        'webdesign_mcp':      'Generate React pages from natural language descriptions.',
+        'webscraper_mcp':     'Scrape web pages and extract structured data with custom schemas.',
+        'excel_pipeline_mcp': 'Robust Excel extraction, data modelling, validation and export.',
+        'data_modelling_mcp': 'Ingest CSV / Excel / JSON / Parquet; infer schema; export to SQLite.',
+      };
+
+      // ── Servers tab content ─────────────────────────────────────────────────
+      const serversHtml = (config.mcp_servers || []).map(s => {
+        const locked = config.compliance_mode && s.id === 'guardrail_mcp';
+        const trackBg = s.enabled ? 'var(--ink)' : '#cbd5e1';
+        const knobLeft = s.enabled ? '18px' : '2px';
+        return '<div style="display:flex;align-items:center;gap:1rem;padding:.9rem 0;border-bottom:1px solid var(--glass-border);">'
+          + '<div style="flex:1;min-width:0;">'
+          +   '<div style="font-size:.83rem;font-weight:500;color:var(--ink);">' + (displayNames[s.id] || s.name) + '</div>'
+          +   '<div style="font-size:.72rem;color:var(--ink-muted);margin-top:.15rem;line-height:1.4;">' + (serverDesc[s.id] || '') + '</div>'
+          + '</div>'
+          + '<div data-sttrack="' + s.id + '" onclick="' + (locked ? '' : '_stoggle(\'' + s.id + '\')') + '"'
+          +   ' title="' + (locked ? 'Cannot disable in Sandbox mode' : (s.enabled ? 'Click to disable' : 'Click to enable')) + '"'
+          +   ' style="width:36px;height:20px;border-radius:10px;background:' + trackBg + ';position:relative;cursor:' + (locked ? 'not-allowed' : 'pointer') + ';transition:background .2s;flex-shrink:0;opacity:' + (locked ? '.45' : '1') + ';">'
+          +   '<div data-stknob="' + s.id + '" style="width:16px;height:16px;border-radius:50%;background:white;position:absolute;top:2px;left:' + knobLeft + ';transition:left .2s;box-shadow:0 1px 3px rgba(0,0,0,.2);"></div>'
+          + '</div>'
+          + '</div>';
+      }).join('');
+
+      // ── LLM tab content ─────────────────────────────────────────────────────
+      const llmHtml = (config.llm_providers || []).map(p => {
+        const isSel = config.selected_llm === p.id;
+        const isOllama = p.id === 'ollama';
+        const isAzure  = p.id === 'azure_foundry';
+        const isCopilot = p.id === 'github_copilot';
+        const label = isOllama ? 'Ollama (Local)' : (isAzure ? 'Azure Foundry' : 'GitHub Copilot');
+        const desc  = isOllama
+          ? 'Run models privately on your machine — no API key required.'
+          : (isAzure
+            ? 'Connect to any model deployed on Azure Foundry (OpenAI-compatible).'
+            : 'Access GitHub Models via a Personal Access Token.');
+        const hasConfig = (isAzure && p.base_url) || (isCopilot && p.api_key);
+        const configLabel = hasConfig ? 'Reconfigure' : 'Configure';
+        const borderColor = isSel ? 'var(--ink)' : 'var(--glass-border)';
+        const bg = isSel ? 'var(--paper-warm)' : 'var(--paper)';
+        let inner = '<div style="flex:1;">'
+          + '<div style="font-size:.83rem;font-weight:600;color:var(--ink);">' + label
+          +   (isSel ? ' <span style="font-size:.68rem;background:var(--ink);color:white;border-radius:10px;padding:.1rem .45rem;margin-left:.4rem;vertical-align:middle;">active</span>' : '')
+          + '</div>'
+          + '<div style="font-size:.72rem;color:var(--ink-muted);margin-top:.2rem;">' + desc + '</div>'
+          + '</div>';
+        if (isOllama) {
+          const modelVal = isSel ? (config.selected_model || '') : '';
+          inner += '<div style="display:flex;gap:.4rem;align-items:center;">'
+            + (isSel
+              ? '<input id="st_ollamaModel" type="text" value="' + modelVal + '" placeholder="llama3.2:3b" '
+              +   'style="padding:.35rem .6rem;border:1px solid var(--glass-border);border-radius:8px;font-size:.78rem;width:130px;background:var(--paper-cool);color:var(--ink);outline:none;">'
+              + '<button onclick="const m=document.getElementById(\'st_ollamaModel\').value.trim();if(m){fetch(\'/api/llm/select\',{method:\'POST\',headers:{\'Content-Type\':\'application/json\'},body:JSON.stringify({provider_id:\'ollama\',model:m})}).then(()=>{config.selected_model=m;updateStatusPills();showToast(\'Model updated\');});}" '
+              +   'style="padding:.35rem .7rem;border-radius:8px;border:none;background:var(--ink);color:white;cursor:pointer;font-size:.75rem;white-space:nowrap;">Save</button>'
+              : '<button onclick="selectLLMProvider(config.llm_providers.find(x=>x.id===\'ollama\'));document.getElementById(\'settingsModal\').remove();openSettingsModal(\'llm\');" '
+              +   'style="padding:.35rem .8rem;border-radius:8px;border:1px solid var(--glass-border);background:transparent;cursor:pointer;font-size:.75rem;color:var(--ink);">Select</button>')
+            + '</div>';
+        } else {
+          const openFn = isAzure
+            ? 'document.getElementById(\'settingsModal\').remove();openAzureFoundryConfig(config.llm_providers.find(x=>x.id===\'azure_foundry\'));'
+            : 'document.getElementById(\'settingsModal\').remove();openGitHubCopilotConfig(config.llm_providers.find(x=>x.id===\'github_copilot\'));';
+          inner += '<button onclick="' + openFn + '" '
+            + 'style="padding:.35rem .8rem;border-radius:8px;border:1px solid var(--glass-border);background:transparent;cursor:pointer;font-size:.75rem;color:var(--ink);white-space:nowrap;">'
+            + configLabel + '</button>';
+        }
+        return '<div style="display:flex;align-items:center;gap:.9rem;padding:.85rem;border:1px solid ' + borderColor + ';border-radius:12px;background:' + bg + ';margin-bottom:.6rem;">' + inner + '</div>';
+      }).join('');
+
+      // ── General tab content ─────────────────────────────────────────────────
+      const sbOn = config.compliance_mode || false;
+      const sbTrack = sbOn ? 'var(--ink)' : '#cbd5e1';
+      const sbKnob  = sbOn ? '18px' : '2px';
+      const generalHtml = '<div style="padding:.5rem 0;">'
+        + '<div style="display:flex;align-items:flex-start;gap:1rem;padding:1rem 0;border-bottom:1px solid var(--glass-border);">'
+        +   '<div style="flex:1;">'
+        +     '<div style="font-size:.83rem;font-weight:500;color:var(--ink);">Sandbox Mode</div>'
+        +     '<div style="font-size:.72rem;color:var(--ink-muted);margin-top:.2rem;line-height:1.5;">'
+        +       'Restricts to localhost-only providers, enforces the Safety Filter, scans messages for PII, and enables full audit logging. '
+        +       '<span style="cursor:pointer;color:var(--accent);text-decoration:underline;" onclick="document.getElementById(\'settingsModal\').remove();openSandboxAuditModal();">View audit log</span>'
+        +     '</div>'
+        +   '</div>'
+        +   '<div id="st_sbtrack" onclick="toggleComplianceMode().then(()=>{document.getElementById(\'settingsModal\').remove();openSettingsModal(\'general\');})" '
+        +     'style="width:36px;height:20px;border-radius:10px;background:' + sbTrack + ';position:relative;cursor:pointer;transition:background .2s;flex-shrink:0;margin-top:.15rem;">'
+        +     '<div style="width:16px;height:16px;border-radius:50%;background:white;position:absolute;top:2px;left:' + sbKnob + ';transition:left .2s;box-shadow:0 1px 3px rgba(0,0,0,.2);"></div>'
+        +   '</div>'
+        + '</div>'
+        + '</div>';
+
+      // ── Tab active style helper ─────────────────────────────────────────────
+      const tabStyle = t =>
+        'padding:.5rem .1rem;border:none;background:transparent;cursor:pointer;font-size:.8rem;'
+        + 'border-bottom:2px solid ' + (t === initialTab ? 'var(--ink)' : 'transparent') + ';'
+        + 'color:' + (t === initialTab ? 'var(--ink)' : 'var(--ink-muted)') + ';'
+        + 'font-weight:' + (t === initialTab ? '600' : '400') + ';'
+        + 'transition:color .15s,border-color .15s;';
+
+      const modal = document.createElement('div');
+      modal.id = 'settingsModal';
+      modal.style.cssText = 'position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;background:rgba(26,26,46,0.5);backdrop-filter:blur(4px);animation:pageReveal .3s ease forwards;';
+      modal.innerHTML = ''
+        + '<div style="background:var(--paper);border-radius:20px;width:min(680px,95vw);max-height:82vh;display:flex;flex-direction:column;box-shadow:0 24px 64px rgba(26,26,46,.25);border:1px solid var(--paper-warm);overflow:hidden;">'
+        +   '<div style="display:flex;align-items:center;justify-content:space-between;padding:1.25rem 1.5rem .75rem;flex-shrink:0;">'
+        +     '<h2 style="font-family:var(--font-serif);font-weight:400;margin:0;font-size:1.25rem;">Settings</h2>'
+        +     '<button onclick="document.getElementById(\'settingsModal\').remove()" style="background:none;border:none;cursor:pointer;color:var(--ink-muted);font-size:1.1rem;line-height:1;padding:.2rem;">✕</button>'
+        +   '</div>'
+        +   '<div style="display:flex;gap:1.5rem;padding:0 1.5rem;border-bottom:1px solid var(--glass-border);flex-shrink:0;">'
+        +     '<button id="stabtn-servers"  style="' + tabStyle('servers')  + '" onclick="switchSettingsTab(\'servers\')">Servers</button>'
+        +     '<button id="stabtn-llm"      style="' + tabStyle('llm')      + '" onclick="switchSettingsTab(\'llm\')">LLM &amp; Model</button>'
+        +     '<button id="stabtn-general"  style="' + tabStyle('general')  + '" onclick="switchSettingsTab(\'general\')">General</button>'
+        +   '</div>'
+        +   '<div style="overflow-y:auto;padding:0 1.5rem 1.5rem;flex:1;">'
+        +     '<div id="stab-servers" style="display:' + (initialTab==='servers' ? 'block' : 'none') + ';">' + serversHtml + '</div>'
+        +     '<div id="stab-llm"     style="display:' + (initialTab==='llm'     ? 'block' : 'none') + ';padding-top:.75rem;">' + llmHtml + '</div>'
+        +     '<div id="stab-general" style="display:' + (initialTab==='general' ? 'block' : 'none') + ';">' + generalHtml + '</div>'
+        +   '</div>'
+        + '</div>';
+
+      document.body.appendChild(modal);
+      modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
+    }
+    // ── End Settings Modal ──────────────────────────────────────────────────────
 
     async function startKbIndexing() {
       const folderPath = document.getElementById('kbFolderPath')?.value.trim();
