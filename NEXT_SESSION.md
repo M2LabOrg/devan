@@ -33,10 +33,14 @@ make start          # docker compose up -d → http://localhost:5001
 # open http://localhost:5001
 ```
 
-- Enable **Document MCP** and **Document Indexer MCP** in Settings → MCP Servers
+There is no separate Settings page — MCP server toggles are on the home screen:
+- Toggle on **Excel / PDF Extraction** and **Document Indexer MCP**
 - Click **Knowledge Base** → pick a small folder (3–5 PDFs or CSVs)
 - Confirm progress events fire and the chip turns green
 - Ask a question — verify `[N]` citation markers appear and the Sources footer renders
+
+Note: a dedicated **Settings** page (persistent config, API keys, model selection) is a
+future enhancement — add it when polishing in Weeks 9–10.
 
 ### 2. Run the paper benchmark
 
