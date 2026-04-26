@@ -24,6 +24,9 @@ cd /path/to/devan
 make start          # docker compose up -d → http://localhost:5001
 ```
 
+The host home directory is mounted read-only at `/host/home` inside the container.
+To index `~/Documents/reports`, enter `/host/home/Documents/reports` in the KB modal.
+
 ## What to tackle next
 
 ### 1. Smoke-test the end-to-end KB flow (required before benchmark run)
@@ -78,7 +81,22 @@ The paper benchmark harness (`mcp-design-deploy/paper/benchmark/`) needs:
 
 Each must expose `run(task_id, instance) → {output, latency_s, error}`.
 
-### 5. Session persistence (optional quality-of-life)
+### 5. Replace Docker file access with native Flask process (Option C)
+
+**Problem:** The Docker home-directory mount (`~/:/host/home:ro`) is a workaround.
+Real users can't be expected to translate paths or be limited to their home folder.
+The Tauri shell (`src-tauri/`) was designed to spawn Flask natively on the host,
+which gives it direct access to any local path with no mounting needed.
+
+**What to do:**
+- Wire `src-tauri/` to spawn `python client/app.py` as a child process on app launch
+- Remove the Docker dependency for the Flask layer (keep Docker only for Ollama)
+- Update `docker-compose.yml` to run Ollama only, not the `app` service
+- Update `Makefile` with a `make dev` target that runs Flask natively
+
+This is the right long-term architecture and unblocks real-world file access.
+
+### 6. Session persistence (optional quality-of-life)
 
 `index_sessions` is in-memory — lost on Flask restart.
 Persist active `session_id` to `client/config.json` so the app reconnects to the last KB without re-indexing.
