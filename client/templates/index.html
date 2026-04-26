@@ -3387,7 +3387,11 @@
       }
 
       if (bar) bar.style.width = '100%';
-      if (spinner) { spinner.style.borderColor = '#27ae60'; spinner.style.borderTopColor = 'transparent'; }
+      if (spinner) {
+        spinner.style.borderColor = '#27ae60';
+        spinner.style.borderTopColor = '#27ae60';
+        spinner.style.animation = 'none';  // stop spinning
+      }
       if (label) label.textContent = `Done — ${data.files_indexed} files, ${data.total_chunks} chunks`;
       if (log && data.errors?.length) {
         log.textContent += data.errors.map(e => `WARN: ${e}`).join('\n') + '\n';
@@ -3399,6 +3403,9 @@
       socket.emit('set_index_session', { session_id: _kbSessionId });
       updateKbPill();
       showToast(`Knowledge base ready — ${data.total_chunks} chunks indexed`);
+
+      // Auto-close the modal after 1.5 s
+      setTimeout(() => document.getElementById('kbModal')?.remove(), 1500);
     });
 
     // ══════════════════════════════════

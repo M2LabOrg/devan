@@ -1528,8 +1528,17 @@ def process_chat_message(sid: str, message: str, config: dict, request_id: str =
         }, room=sid)
 
     except Exception as e:
+        import traceback
+        # Unwrap ExceptionGroup (Python 3.11 TaskGroup errors) to show real cause
+        if hasattr(e, 'exceptions'):
+            inner_msgs = '; '.join(str(ex) for ex in e.exceptions)
+            logging.error(f"Chat TaskGroup error. Inner exceptions: {inner_msgs}\n{traceback.format_exc()}")
+            err_display = inner_msgs
+        else:
+            logging.error(f"Chat error: {traceback.format_exc()}")
+            err_display = str(e)
         socketio.emit('chat_response', {
-            'error': f'Error processing message: {str(e)}',
+            'error': f'Error processing message: {err_display}',
             'requestId': request_id
         }, room=sid)
 
