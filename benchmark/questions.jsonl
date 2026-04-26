@@ -2,16 +2,26 @@
 {"tier": "T1", "question": "Which company manages the Offshore Turbine project in Northern Region?", "expected_answer": "Kestrel Power Group"}
 {"tier": "T1", "question": "What is the project date for PRJ-0002?", "expected_answer": "2022-06-13"}
 {"tier": "T1", "question": "What is the installed capacity of the Battery Storage project in Southern Region (PRJ-0008)?", "expected_answer": "95.9 MW"}
+{"tier": "T1", "question": "What is the installed capacity of the Wind Farm in Yorkshire Region managed by Meridian Infrastructure Ltd?", "expected_answer": "486.0 MW"}
 {"tier": "T1", "question": "What company manages project PRJ-0016 and what type of project is it?", "expected_answer": "Solent Grid Services, Hydroelectric Plant"}
+{"tier": "T1", "question": "What type of project is PRJ-0006 and where is it located?", "expected_answer": "Battery Storage, South-West Region"}
 {"tier": "T1", "question": "What is the installed capacity of PRJ-0018?", "expected_answer": "306.0 MW"}
+{"tier": "T1", "question": "Which company manages the Solar Array in Midlands Region reported on 2025-06-01?", "expected_answer": "Solent Grid Services"}
 {"tier": "T2", "question": "What installed capacity is reported for PRJ-0100 in both the PDF summary and the KPI spreadsheet?", "expected_answer": "160.5 MW"}
 {"tier": "T2", "question": "What company manages PRJ-0101 and what is the installed capacity reported in the documents?", "expected_answer": "Meridian Infrastructure Ltd, 267.5 MW"}
 {"tier": "T2", "question": "Do the PDF summary and Excel KPI for PRJ-0102 agree on the installed capacity, and what is it?", "expected_answer": "Yes, 303.3 MW"}
 {"tier": "T2", "question": "What is the installed capacity of the Battery Storage project in Midlands Region for PRJ-0104?", "expected_answer": "346.2 MW"}
+{"tier": "T2", "question": "What region and company does PRJ-0106 belong to, and what capacity does the Excel KPI report?", "expected_answer": "Southern Region, Grampian Wind Corp, 204.9 MW"}
+{"tier": "T2", "question": "What is the installed capacity of the Offshore Turbine in Eastern Region under Severn Power Holdings (PRJ-0103)?", "expected_answer": "404.3 MW"}
 {"tier": "T2", "question": "According to the project documents, is the commissioning of PRJ-0102 on schedule?", "expected_answer": "Yes, on schedule"}
 {"tier": "T2", "question": "What is the KPI for the Hydroelectric Plant in Yorkshire Region (PRJ-0108)?", "expected_answer": "94.6 MW"}
+{"tier": "T2", "question": "What installed capacity is reported for the Offshore Turbine in Southern Region (PRJ-0109)?", "expected_answer": "170.6 MW"}
 {"tier": "T3", "question": "For PRJ-0200, what is the installed capacity and how many time-series rows does the timeseries file contain?", "expected_answer": "235.0 MW, 24 rows"}
 {"tier": "T3", "question": "Which company manages the Pumped Storage project in Midlands Region (PRJ-0204) and what is its capacity?", "expected_answer": "Severn Power Holdings, 344.6 MW"}
 {"tier": "T3", "question": "What is the total installed capacity of all T3 projects located in Midlands Region?", "expected_answer": "1158.6 MW (PRJ-0203: 223.7 + PRJ-0204: 344.6 + PRJ-0208: 457.5 + PRJ-0219: 132.8)"}
 {"tier": "T3", "question": "Which T3 project in Eastern Region has the highest installed capacity?", "expected_answer": "PRJ-0211, Wind Farm, 491.8 MW"}
+{"tier": "T3", "question": "How many T3 projects are located in Eastern Region?", "expected_answer": "5 (PRJ-0200, PRJ-0210, PRJ-0211, PRJ-0212, PRJ-0216)"}
+{"tier": "T3", "question": "What company manages the Grid Substation in South-West Region (PRJ-0206) and what is its installed capacity?", "expected_answer": "Meridian Infrastructure Ltd, 498.6 MW"}
+{"tier": "T3", "question": "Of the T3 Wind Farm projects in Yorkshire Region, which has the higher installed capacity: PRJ-0201 or PRJ-0213?", "expected_answer": "PRJ-0213 with 398.0 MW, compared to PRJ-0201 at 182.8 MW"}
+{"tier": "T3", "question": "What project type and company are documented for PRJ-0207?", "expected_answer": "Pumped Storage, Forth Valley Utilities, 403.7 MW"}
 {"tier": "T3", "question": "Which company appears most frequently across all T3 projects in the corpus?", "expected_answer": "Kestrel Power Group (5 projects: PRJ-0203, PRJ-0210, PRJ-0213, PRJ-0218, PRJ-0219)"}

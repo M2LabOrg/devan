@@ -205,3 +205,12 @@ cython_debug/
 marimo/_static/
 marimo/_lsp/
 __marimo__/
+
+# macOS resource fork files
+._*
+
+# Benchmark generated data (reproducible via benchmark/setup.sh)
+benchmark/data/
+benchmark/results.json
+benchmark_results.json
+benchmark_indexer.db
