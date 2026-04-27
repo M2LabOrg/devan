@@ -61,6 +61,7 @@ class MCPServer:
     command: str
     args: List[str]
     enabled: bool = False
+    tags: List[str] = None
 
 @dataclass
 class LLMProvider:
@@ -82,6 +83,7 @@ MCP_SERVERS = [
         command="uv",
         args=["run", "document_server.py"],
         enabled=True,
+        tags=["document", "pdf", "word", "file", "text", "paper", "report", "read", "extract"],
     ),
     MCPServer(
         id="prompt_mcp",
@@ -89,7 +91,8 @@ MCP_SERVERS = [
         description="Prompt engineering with library management, PDF processing, and structured prompts",
         path=str(PROJECT_ROOT / "servers" / "prompt-engineering" / "mcp_project"),
         command="uv",
-        args=["run", "prompt_server.py"]
+        args=["run", "prompt_server.py"],
+        tags=["prompt", "template", "engineering", "library"],
     ),
     MCPServer(
         id="guardrail_mcp",
@@ -97,7 +100,8 @@ MCP_SERVERS = [
         description="Content moderation and safety guardrails for LLM outputs",
         path=str(PROJECT_ROOT / "servers" / "guardrail" / "mcp_project"),
         command="uv",
-        args=["run", "guardrail_server.py"]
+        args=["run", "guardrail_server.py"],
+        tags=["safety", "moderate", "guardrail", "compliance", "filter"],
     ),
     MCPServer(
         id="webdesign_mcp",
@@ -105,7 +109,8 @@ MCP_SERVERS = [
         description="Web design and HTML/CSS generation tools",
         path=str(PROJECT_ROOT / "servers" / "webdesign" / "mcp_project"),
         command="uv",
-        args=["run", "webdesign_server.py"]
+        args=["run", "webdesign_server.py"],
+        tags=["html", "css", "design", "webpage", "frontend", "landing page", "website design"],
     ),
     MCPServer(
         id="webscraper_mcp",
@@ -113,7 +118,8 @@ MCP_SERVERS = [
         description="Intelligent web scraping with Firecrawl (premium) and BeautifulSoup (free) engines",
         path=str(PROJECT_ROOT / "servers" / "webscraper" / "mcp_project"),
         command="uv",
-        args=["run", "webscraper_server.py"]
+        args=["run", "webscraper_server.py"],
+        tags=["scrape", "crawl", "http://", "https://", ".com", ".org", "website", "web page", "browse", "url"],
     ),
     MCPServer(
         id="excel_pipeline_mcp",
@@ -121,7 +127,8 @@ MCP_SERVERS = [
         description="Robust Excel data extraction, canonical modelling, validation, lineage tracking, and export",
         path=str(PROJECT_ROOT / "servers" / "excel-pipeline" / "mcp_project"),
         command="uv",
-        args=["run", "excel_pipeline_server.py"]
+        args=["run", "excel_pipeline_server.py"],
+        tags=["excel", ".xlsx", "spreadsheet", "workbook", "pipeline"],
     ),
     MCPServer(
         id="data_modelling_mcp",
@@ -129,7 +136,8 @@ MCP_SERVERS = [
         description="Ingest structured or semi-structured data, infer a relational data model, and export to SQLite, Arrow, Feather, or JSON",
         path=str(PROJECT_ROOT / "servers" / "data-modelling" / "mcp_project"),
         command="uv",
-        args=["run", "data_modelling_server.py"]
+        args=["run", "data_modelling_server.py"],
+        tags=["data model", "schema", "sqlite", "database", "relational", "normalize", "sql"],
     ),
     MCPServer(
         id="indexer_mcp",
@@ -139,8 +147,47 @@ MCP_SERVERS = [
         command="uv",
         args=["run", "indexer_server.py"],
         enabled=True,
+        tags=["index", "search", "query", "knowledge", "rag", "summarise", "summarize", "papers", "kb"],
     ),
 ]
+
+# Human-readable labels for tool names shown in the UI
+TOOL_LABELS: dict = {
+    'query': 'Searching knowledge base',
+    'list_indexed_files': 'Listing indexed files',
+    'read_text_file': 'Reading document',
+    'read_pdf_file': 'Reading PDF',
+    'list_pdf_files': 'Listing PDFs',
+    'list_text_files': 'Listing text files',
+    'list_word_files': 'Listing Word documents',
+    'read_word_file': 'Reading Word document',
+    'read_excel_file': 'Reading spreadsheet',
+    'scrape_url': 'Scraping web page',
+    'search_web': 'Searching the web',
+    'process_excel': 'Processing Excel file',
+    'generate_html': 'Generating HTML',
+    'check_content': 'Checking content safety',
+    'get_prompt': 'Loading prompt template',
+    'list_prompts': 'Listing prompt templates',
+    'index_file': 'Indexing file',
+    'index_folder': 'Indexing folder',
+}
+
+
+def _auto_select_servers(message: str, all_servers: list) -> list:
+    """Return servers relevant to this message — core servers always included."""
+    core_ids = {'document_mcp', 'indexer_mcp'}
+    msg_lower = message.lower()
+    selected = []
+    for server in all_servers:
+        sid = server.get('id', '')
+        if sid in core_ids:
+            selected.append(server)
+        else:
+            tags = server.get('tags') or []
+            if any(tag in msg_lower for tag in tags):
+                selected.append(server)
+    return selected
 
 # Default LLM providers
 DEFAULT_LLM_PROVIDERS = [
@@ -1360,10 +1407,11 @@ async def _agentic_loop(
             # ── Tell the UI which tools are being used ──────────────────────
             tool_names = [tc['name'] for tc in tool_calls]
             tools_actually_called.extend(tool_names)
+            tool_labels = [TOOL_LABELS.get(n, n.replace('_', ' ').title()) for n in tool_names]
             socketio.emit('chat_status', {
                 'status': 'tool_use',
-                'message': f"Using: {', '.join(tool_names)}",
                 'tools': tool_names,
+                'tool_labels': tool_labels,
             }, room=sid)
 
             # ── Append assistant's tool-call turn to history ─────────────────
@@ -1449,8 +1497,8 @@ def process_chat_message(sid: str, message: str, config: dict, request_id: str =
             
         model = config['selected_model']
         
-        # Get enabled MCP servers for this session
-        enabled_servers = [s for s in config['mcp_servers'] if s.get('enabled', False)]
+        # Auto-select MCP servers based on message content
+        enabled_servers = _auto_select_servers(message, config['mcp_servers'])
         
         # Emit thinking status with rotating verbs
         thinking_verbs = ['Brewing', 'Pondering', 'Contemplating', 'Reflecting', 'Weaving', 'Synthesizing', 'Distilling']

@@ -569,9 +569,20 @@
     .typing-indicator{display:none;padding:.5rem 0;flex-direction:column;gap:.25rem}
     .typing-indicator.visible{display:flex}
     .thinking-verb{font-size:.75rem;color:var(--ink-muted);font-style:italic;margin-left:28px;margin-bottom:.25rem;opacity:0.8;animation:fadeUp 0.3s ease}
-    .mcp-tools{display:flex;gap:.35rem;flex-wrap:wrap;margin-left:28px;margin-top:.25rem}
-    .mcp-tool-badge{font-size:.65rem;padding:.15rem .5rem;background:var(--paper-warm);border:1px solid var(--glass-border);border-radius:12px;color:var(--ink-muted);display:flex;align-items:center;gap:.25rem}
-    .mcp-tool-badge::before{content:"⚡";font-size:.7rem}
+    /* Agent activity card — single in-place indicator during tool use */
+    .agent-activity{display:flex;flex-direction:column;gap:.3rem;padding:.6rem .85rem;background:var(--paper-warm);border:1px solid var(--glass-border);border-radius:12px;margin:.3rem 0 .3rem 36px;max-width:480px;animation:fadeUp .2s var(--ease-out)}
+    .agent-activity-row{display:flex;align-items:center;gap:.55rem;font-size:.74rem;color:var(--ink-muted)}
+    .agent-activity-row.current{color:var(--ink)}
+    .agent-activity-spinner{width:11px;height:11px;border:1.5px solid var(--accent);border-top-color:transparent;border-radius:50%;animation:spin .7s linear infinite;flex-shrink:0}
+    .agent-activity-done{width:11px;height:11px;border-radius:50%;background:color-mix(in srgb,var(--accent) 20%,transparent);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:.55rem;color:var(--accent)}
+    /* Tools disclosure on final message */
+    .tools-disclosure{margin-left:0;margin-top:.4rem}
+    .tools-disclosure summary{font-size:.67rem;color:var(--ink-muted);cursor:pointer;list-style:none;display:flex;align-items:center;gap:.3rem;user-select:none}
+    .tools-disclosure summary::-webkit-details-marker{display:none}
+    .tools-disclosure summary::before{content:"▶";font-size:.5rem;transition:transform .15s;display:inline-block}
+    .tools-disclosure[open] summary::before{transform:rotate(90deg)}
+    .tools-disclosure-chips{display:flex;gap:.3rem;flex-wrap:wrap;margin-top:.35rem}
+    .tools-disclosure-chip{font-size:.63rem;padding:.1rem .45rem;background:var(--paper-warm);border:1px solid var(--glass-border);border-radius:10px;color:var(--ink-muted)}
     /* Citation sources footer */
     .msg-citations{margin-top:.6rem;border-top:1px solid var(--glass-border);padding-top:.5rem}
     .msg-citations-label{font-size:.6rem;font-weight:600;color:var(--ink-muted);letter-spacing:.1em;text-transform:uppercase;margin-bottom:.35rem}
