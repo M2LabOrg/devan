@@ -184,7 +184,9 @@ def _load_kb_sessions() -> list:
 
 
 def _save_kb_session(folder_path: str, session_id: str, files_indexed: int, total_chunks: int) -> None:
-    sessions = [s for s in _load_kb_sessions() if s.get('session_id') != session_id]
+    # Deduplicate by both session_id and folder_path so re-indexing replaces the old entry
+    sessions = [s for s in _load_kb_sessions()
+                if s.get('session_id') != session_id and s.get('folder_path') != folder_path]
     sessions.insert(0, {
         'folder_path': folder_path,
         'host_path': _docker_to_host_path(folder_path),
