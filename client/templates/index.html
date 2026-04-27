@@ -2962,6 +2962,14 @@
           currentProject = data.project;
           updateProjectPill();
           await restoreScrapeTrackerFromServer();
+          // Auto-restore KB session if one is linked to this project
+          if (currentProject.kb_session_id && currentProject.kb_session_id !== _kbSessionId) {
+            _kbSessionId = currentProject.kb_session_id;
+            socket.emit('set_index_session', { session_id: _kbSessionId });
+            updateKbPill();
+            const folderName = (currentProject.kb_folder_path || '').split('/').pop() || 'KB';
+            showToast(`KB auto-restored — ${folderName}`);
+          }
           addSystemNotice(`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:10px;height:10px"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg> Project context set to <strong style="color:var(--accent)">${escapeHtml(currentProject.name)}</strong> — the LLM is now aware of this project`);
         }
       } catch (e) {
@@ -3094,10 +3102,15 @@
           </div>
 
           ${_kbSessionId ? `
-          <div style="padding:.65rem .9rem;background:#f0faf0;border:1px solid #b6e2b6;border-radius:10px;margin-bottom:1.1rem;display:flex;align-items:center;gap:.6rem;">
+          <div style="padding:.65rem .9rem;background:#f0faf0;border:1px solid #b6e2b6;border-radius:10px;margin-bottom:1.1rem;display:flex;align-items:center;gap:.6rem;flex-wrap:wrap;">
             <svg viewBox="0 0 24 24" fill="none" stroke="#2d7d32" stroke-width="2" style="width:14px;height:14px;flex-shrink:0"><polyline points="20 6 9 17 4 12"/></svg>
-            <span style="font-size:.78rem;color:#2d7d32;font-weight:500;">Active KB session: <code style="font-family:monospace;font-size:.75rem;">${_kbSessionId.slice(0,8)}…</code></span>
-            <button onclick="clearKbSession()" style="margin-left:auto;background:none;border:1px solid #b6e2b6;border-radius:6px;cursor:pointer;padding:.2rem .5rem;font-size:.7rem;color:#2d7d32;">Clear</button>
+            <span style="font-size:.78rem;color:#2d7d32;font-weight:500;flex:1;">Active KB session: <code style="font-family:monospace;font-size:.75rem;">${_kbSessionId.slice(0,8)}…</code></span>
+            ${currentProject
+              ? (currentProject.kb_session_id === _kbSessionId
+                  ? `<button onclick="unlinkKbFromProject()" style="background:none;border:1px solid #b6e2b6;border-radius:6px;cursor:pointer;padding:.2rem .5rem;font-size:.7rem;color:#2d7d32;" title="Remove KB link from project">Unlink from ${escapeHtml(currentProject.name)}</button>`
+                  : `<button onclick="linkKbToProject()" style="background:#2d7d32;border:none;border-radius:6px;cursor:pointer;padding:.2rem .6rem;font-size:.7rem;color:white;" title="Save this KB session to the project">Link to ${escapeHtml(currentProject.name)}</button>`)
+              : ''}
+            <button onclick="clearKbSession()" style="background:none;border:1px solid #b6e2b6;border-radius:6px;cursor:pointer;padding:.2rem .5rem;font-size:.7rem;color:#2d7d32;">Clear</button>
           </div>` : ''}
 
           <div id="kbSavedSessions" style="margin-bottom:1.1rem;"></div>
@@ -3149,7 +3162,13 @@
                 </div>
                 ${isActive
                   ? `<span style="font-size:.68rem;color:#2d7d32;font-weight:600;">Active</span>`
-                  : `<button onclick="restoreKbSession('${s.session_id}', '${escapeHtml(displayPath)}')" style="padding:.3rem .65rem;font-size:.72rem;background:var(--ink);color:white;border:none;border-radius:7px;cursor:pointer;white-space:nowrap;">Restore</button>`
+                  : `<button onclick="restoreKbSession('${s.session_id}', ${JSON.stringify(displayPath)})" style="padding:.3rem .65rem;font-size:.72rem;background:var(--ink);color:white;border:none;border-radius:7px;cursor:pointer;white-space:nowrap;">Restore</button>`
+                }
+                ${currentProject && !isActive && currentProject.kb_session_id !== s.session_id
+                  ? `<button onclick="linkSessionToProject('${s.session_id}', ${JSON.stringify(displayPath)})" title="Link to ${escapeHtml(currentProject.name)}" style="padding:.25rem .45rem;font-size:.68rem;background:none;border:1px solid var(--glass-border);border-radius:6px;cursor:pointer;color:var(--ink-muted);white-space:nowrap;">🔗</button>`
+                  : (currentProject && currentProject.kb_session_id === s.session_id && !isActive
+                      ? `<span style="font-size:.65rem;color:var(--ink-muted);" title="Linked to ${escapeHtml(currentProject.name)}">📌</span>`
+                      : '')
                 }
                 <button onclick="removeKbSession('${s.session_id}', this)" title="Remove from list" style="padding:.25rem .4rem;font-size:.8rem;background:none;border:1px solid var(--glass-border);border-radius:6px;cursor:pointer;color:var(--ink-muted);line-height:1;">✕</button>
               </div>`;
@@ -3175,6 +3194,60 @@
       fetch(`/api/kb/sessions/${sessionId}`, { method: 'DELETE' })
         .then(() => btn.closest('div[style]').remove())
         .catch(() => {});
+    }
+
+    async function linkKbToProject() {
+      if (!currentProject || !_kbSessionId) return;
+      // Find the folder path for the active session from the saved sessions list
+      let folderPath = '';
+      try {
+        const sessions = await fetch('/api/kb/sessions').then(r => r.json());
+        const s = sessions.find(s => s.session_id === _kbSessionId);
+        folderPath = s ? (s.host_path || s.folder_path || '') : '';
+      } catch (_) {}
+      try {
+        await fetch(`/api/projects/${encodeURIComponent(currentProject.name)}/kb`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ session_id: _kbSessionId, folder_path: folderPath })
+        });
+        currentProject.kb_session_id = _kbSessionId;
+        currentProject.kb_folder_path = folderPath;
+        document.getElementById('kbModal')?.remove();
+        showToast(`KB linked to project "${currentProject.name}"`);
+      } catch (e) {
+        showToast('Failed to link KB: ' + e.message);
+      }
+    }
+
+    async function linkSessionToProject(sessionId, folderPath) {
+      if (!currentProject) return;
+      try {
+        await fetch(`/api/projects/${encodeURIComponent(currentProject.name)}/kb`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ session_id: sessionId, folder_path: folderPath })
+        });
+        currentProject.kb_session_id = sessionId;
+        currentProject.kb_folder_path = folderPath;
+        document.getElementById('kbModal')?.remove();
+        showToast(`KB linked to project "${currentProject.name}"`);
+      } catch (e) {
+        showToast('Failed to link KB: ' + e.message);
+      }
+    }
+
+    async function unlinkKbFromProject() {
+      if (!currentProject) return;
+      try {
+        await fetch(`/api/projects/${encodeURIComponent(currentProject.name)}/kb`, { method: 'DELETE' });
+        currentProject.kb_session_id = null;
+        currentProject.kb_folder_path = null;
+        document.getElementById('kbModal')?.remove();
+        showToast(`KB unlinked from project "${currentProject.name}"`);
+      } catch (e) {
+        showToast('Failed to unlink KB: ' + e.message);
+      }
     }
 
     // ── Settings Modal ──────────────────────────────────────────────────────────

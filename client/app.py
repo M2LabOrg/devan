@@ -1857,7 +1857,9 @@ def create_project():
             'project_id': meta.get('project_id'),
             'name': name,
             'path': str(project_path),
-            'file_count': file_count
+            'file_count': file_count,
+            'kb_session_id': meta.get('kb_session_id'),
+            'kb_folder_path': meta.get('kb_folder_path'),
         }
         return jsonify({
             'status': 'exists',
@@ -1877,7 +1879,9 @@ def create_project():
             'project_id': meta.get('project_id'),
             'name': name,
             'path': str(project_path),
-            'file_count': 0
+            'file_count': 0,
+            'kb_session_id': meta.get('kb_session_id'),
+            'kb_folder_path': meta.get('kb_folder_path'),
         }
 
         return jsonify({
@@ -1916,7 +1920,9 @@ def select_project():
         'project_id': meta.get('project_id'),
         'name': name,
         'path': str(project_path),
-        'file_count': file_count
+        'file_count': file_count,
+        'kb_session_id': meta.get('kb_session_id'),
+        'kb_folder_path': meta.get('kb_folder_path'),
     }
 
     return jsonify({
@@ -2860,6 +2866,45 @@ def kb_sessions_delete(session_id):
     sessions = [s for s in _load_kb_sessions() if s.get('session_id') != session_id]
     KB_SESSIONS_FILE.write_text(json.dumps(sessions, indent=2))
     return jsonify({'ok': True})
+
+
+@app.route('/api/projects/<name>/kb', methods=['POST', 'DELETE'])
+def project_kb_link(name):
+    """Link or unlink a KB session from a project's metadata."""
+    if '/' in name or '\\' in name or '..' in name:
+        return jsonify({'error': 'Invalid project name'}), 400
+    project_path = PROJECTS_DIR / name
+    if not project_path.exists():
+        return jsonify({'error': f'Project not found: {name}'}), 404
+
+    meta_path = _project_meta_path(project_path)
+    try:
+        meta = json.loads(meta_path.read_text(encoding='utf-8')) if meta_path.exists() else {}
+    except Exception:
+        meta = {}
+
+    if request.method == 'POST':
+        data = request.json or {}
+        session_id = data.get('session_id', '').strip()
+        folder_path = data.get('folder_path', '').strip()
+        if not session_id:
+            return jsonify({'error': 'session_id required'}), 400
+        meta['kb_session_id'] = session_id
+        meta['kb_folder_path'] = folder_path
+    else:  # DELETE
+        meta.pop('kb_session_id', None)
+        meta.pop('kb_folder_path', None)
+
+    meta['updated_at'] = datetime.now().isoformat()
+    meta_path.write_text(json.dumps(meta, indent=2), encoding='utf-8')
+
+    # Keep current_project in sync
+    global current_project
+    if current_project and current_project.get('name') == name:
+        current_project['kb_session_id'] = meta.get('kb_session_id')
+        current_project['kb_folder_path'] = meta.get('kb_folder_path')
+
+    return jsonify({'ok': True, 'kb_session_id': meta.get('kb_session_id')})
 
 
 @app.route('/api/prepare_vscode', methods=['POST'])
