@@ -3080,7 +3080,7 @@
       modal.id = 'kbModal';
       modal.style.cssText = 'position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;background:rgba(26,26,46,0.5);backdrop-filter:blur(4px);animation:pageReveal .3s ease forwards;';
       modal.innerHTML = `
-        <div style="background:var(--paper);border-radius:20px;padding:2rem;max-width:580px;width:92%;box-shadow:var(--shadow-lg);position:relative;">
+        <div style="background:var(--paper);border-radius:20px;padding:2rem;max-width:600px;width:92%;box-shadow:var(--shadow-lg);position:relative;max-height:90vh;overflow-y:auto;">
           <button onclick="document.getElementById('kbModal').remove()" style="position:absolute;top:1rem;right:1rem;background:none;border:none;cursor:pointer;color:var(--ink-muted);font-size:1.2rem;">✕</button>
           <h2 style="font-family:var(--font-serif);font-weight:400;margin-bottom:.35rem;">Knowledge Base</h2>
           <p style="font-size:.8rem;color:var(--ink-muted);margin-bottom:.85rem;">Index a folder of documents. Once indexed, ask questions in the chat and get cited answers.</p>
@@ -3100,8 +3100,10 @@
             <button onclick="clearKbSession()" style="margin-left:auto;background:none;border:1px solid #b6e2b6;border-radius:6px;cursor:pointer;padding:.2rem .5rem;font-size:.7rem;color:#2d7d32;">Clear</button>
           </div>` : ''}
 
+          <div id="kbSavedSessions" style="margin-bottom:1.1rem;"></div>
+
           <div style="margin-bottom:1.1rem;">
-            <label style="font-size:.72rem;font-weight:600;letter-spacing:.06em;color:var(--ink-muted);text-transform:uppercase;display:block;margin-bottom:.35rem;">Source Folder</label>
+            <label style="font-size:.72rem;font-weight:600;letter-spacing:.06em;color:var(--ink-muted);text-transform:uppercase;display:block;margin-bottom:.35rem;">Index a new folder</label>
             <div style="display:flex;gap:.5rem;">
               <input id="kbFolderPath" type="text" placeholder="/Users/you/Documents/reports" style="flex:1;padding:.6rem .9rem;border:1px solid var(--glass-border);border-radius:10px;font-size:.8rem;background:var(--paper-cool);color:var(--ink);outline:none;font-family:monospace;">
               <button onclick="openFolderBrowser('kbFolderPath')" style="padding:.5rem .75rem;background:var(--paper-warm);border:1px solid var(--glass-border);border-radius:10px;cursor:pointer;font-size:.75rem;color:var(--ink-light);white-space:nowrap;" title="Browse folders">📁 Browse</button>
@@ -3127,6 +3129,47 @@
         </div>`;
       document.body.appendChild(modal);
       modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
+
+      // Load previously indexed folders
+      fetch('/api/kb/sessions').then(r => r.json()).then(sessions => {
+        const container = document.getElementById('kbSavedSessions');
+        if (!container || !sessions.length) return;
+        const fmt = iso => new Date(iso).toLocaleDateString(undefined, {month:'short', day:'numeric', year:'numeric'});
+        container.innerHTML = `
+          <label style="font-size:.72rem;font-weight:600;letter-spacing:.06em;color:var(--ink-muted);text-transform:uppercase;display:block;margin-bottom:.5rem;">Previously indexed</label>
+          <div style="display:flex;flex-direction:column;gap:.4rem;">
+            ${sessions.map(s => {
+              const isActive = s.session_id === _kbSessionId;
+              const displayPath = s.host_path || s.folder_path;
+              const shortPath = displayPath.length > 48 ? '…' + displayPath.slice(-46) : displayPath;
+              return `<div style="display:flex;align-items:center;gap:.5rem;padding:.55rem .75rem;border:1px solid ${isActive ? '#b6e2b6' : 'var(--glass-border)'};background:${isActive ? '#f0faf0' : 'var(--paper-cool)'};border-radius:10px;">
+                <div style="flex:1;min-width:0;">
+                  <div style="font-size:.78rem;font-family:monospace;color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${escapeHtml(displayPath)}">${escapeHtml(shortPath)}</div>
+                  <div style="font-size:.68rem;color:var(--ink-muted);margin-top:.15rem;">${s.files_indexed} files · ${s.total_chunks} chunks · ${fmt(s.indexed_at)}</div>
+                </div>
+                ${isActive
+                  ? `<span style="font-size:.68rem;color:#2d7d32;font-weight:600;">Active</span>`
+                  : `<button onclick="restoreKbSession('${s.session_id}', '${escapeHtml(displayPath)}')" style="padding:.3rem .65rem;font-size:.72rem;background:var(--ink);color:white;border:none;border-radius:7px;cursor:pointer;white-space:nowrap;">Restore</button>`
+                }
+                <button onclick="removeKbSession('${s.session_id}', this)" title="Remove from list" style="padding:.25rem .4rem;font-size:.8rem;background:none;border:1px solid var(--glass-border);border-radius:6px;cursor:pointer;color:var(--ink-muted);line-height:1;">✕</button>
+              </div>`;
+            }).join('')}
+          </div>`;
+      }).catch(() => {});
+    }
+
+    function restoreKbSession(sessionId, folderPath) {
+      _kbSessionId = sessionId;
+      socket.emit('set_index_session', { session_id: sessionId });
+      updateKbPill();
+      document.getElementById('kbModal')?.remove();
+      showToast(`KB restored — ${folderPath.split('/').pop()}`);
+    }
+
+    function removeKbSession(sessionId, btn) {
+      fetch(`/api/kb/sessions/${sessionId}`, { method: 'DELETE' })
+        .then(() => btn.closest('div[style]').remove())
+        .catch(() => {});
     }
 
     // ── Settings Modal ──────────────────────────────────────────────────────────

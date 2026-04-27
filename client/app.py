@@ -171,6 +171,31 @@ config_file = PROJECT_ROOT / "client" / "config.json"
 # Tracks active indexer session per Socket.IO session (sid → indexer session_id)
 index_sessions: Dict[str, str] = {}
 
+# Persistent KB session registry — survives container restarts alongside the SQLite index
+KB_DATA_DIR = PROJECT_ROOT / "client" / "kb_data"
+KB_SESSIONS_FILE = KB_DATA_DIR / "sessions.json"
+
+
+def _load_kb_sessions() -> list:
+    try:
+        return json.loads(KB_SESSIONS_FILE.read_text()) if KB_SESSIONS_FILE.exists() else []
+    except Exception:
+        return []
+
+
+def _save_kb_session(folder_path: str, session_id: str, files_indexed: int, total_chunks: int) -> None:
+    sessions = [s for s in _load_kb_sessions() if s.get('session_id') != session_id]
+    sessions.insert(0, {
+        'folder_path': folder_path,
+        'host_path': _docker_to_host_path(folder_path),
+        'session_id': session_id,
+        'files_indexed': files_indexed,
+        'total_chunks': total_chunks,
+        'indexed_at': __import__('datetime').datetime.now().isoformat(timespec='seconds'),
+    })
+    KB_DATA_DIR.mkdir(parents=True, exist_ok=True)
+    KB_SESSIONS_FILE.write_text(json.dumps(sessions[:20], indent=2))
+
 # Supported extensions for the knowledge-base indexing pipeline
 _INDEXABLE_EXTENSIONS = {
     '.pdf', '.xlsx', '.xls', '.xlsm',
@@ -2742,6 +2767,7 @@ async def _index_folder_async(folder_path: str, session_id: str, sid: str) -> No
 
             files_done += 1
 
+    _save_kb_session(folder_path, session_id, files_done, total_chunks)
     socketio.emit('index_complete', {
         'session_id': session_id,
         'files_indexed': files_done,
@@ -2818,6 +2844,20 @@ def index_status():
     sid = request.args.get('sid', '').strip()
     session_id = index_sessions.get(sid, '')
     return jsonify({'session_id': session_id, 'active': bool(session_id)})
+
+
+@app.route('/api/kb/sessions', methods=['GET'])
+def kb_sessions_list():
+    """Return all persisted KB sessions (folder → session_id mappings)."""
+    return jsonify(_load_kb_sessions())
+
+
+@app.route('/api/kb/sessions/<session_id>', methods=['DELETE'])
+def kb_sessions_delete(session_id):
+    """Remove a KB session from the persistent registry."""
+    sessions = [s for s in _load_kb_sessions() if s.get('session_id') != session_id]
+    KB_SESSIONS_FILE.write_text(json.dumps(sessions, indent=2))
+    return jsonify({'ok': True})
 
 
 @app.route('/api/prepare_vscode', methods=['POST'])
