@@ -1545,7 +1545,10 @@ def process_chat_message(sid: str, message: str, config: dict, request_id: str =
         if 'error' in response:
             err = response['error']
             err_msg = err.get('message', str(err)) if isinstance(err, dict) else str(err)
-            if 'models' in err_msg.lower() and 'permission' in err_msg.lower():
+            if 'does not support tools' in err_msg.lower() or 'tool_use' in err_msg.lower():
+                err_msg = (f'**{model}** does not support tool use. '
+                           'Switch to **qwen3.5:4b** (fast, reliable tool calls) via the model picker.')
+            elif 'models' in err_msg.lower() and 'permission' in err_msg.lower():
                 err_msg = ('Your GitHub token needs the **models:read** permission. '
                            'Go to github.com/settings/tokens, edit your token, '
                            'and enable models:read under Account permissions.')
