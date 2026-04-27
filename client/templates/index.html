@@ -3209,12 +3209,7 @@
       socket.emit('set_index_session', { session_id: sessionId });
       updateKbPill();
       document.getElementById('kbModal')?.remove();
-      const enabledServers = (config.mcp_servers || []).filter(s => s.enabled).length;
-      if (enabledServers === 0) {
-        showToast('KB restored — click Servers to enable Document MCP + Indexer MCP');
-      } else {
-        showToast(`KB restored — ${folderPath.split('/').pop()}`);
-      }
+      showToast(`KB restored — ${folderPath.split('/').pop() || folderPath}`);
     }
 
     function removeKbSession(sessionId, btn) {

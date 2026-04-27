@@ -80,7 +80,8 @@ MCP_SERVERS = [
         description="Unified document processing — Excel, PDF, and Word extraction, table detection, OCR, and RAG chunking",
         path=str(PROJECT_ROOT / "servers" / "document" / "mcp_project"),
         command="uv",
-        args=["run", "document_server.py"]
+        args=["run", "document_server.py"],
+        enabled=True,
     ),
     MCPServer(
         id="prompt_mcp",
@@ -136,7 +137,8 @@ MCP_SERVERS = [
         description="SQLite-backed RAG index: store chunks from any document type and answer questions with cited sources using the query tool",
         path=str(PROJECT_ROOT / "servers" / "indexer" / "mcp_project"),
         command="uv",
-        args=["run", "indexer_server.py"]
+        args=["run", "indexer_server.py"],
+        enabled=True,
     ),
 ]
 
@@ -234,6 +236,9 @@ def scan_message_for_pii(message: str) -> List[str]:
     ]
 
 
+_ALWAYS_ON_SERVERS = {'document_mcp', 'indexer_mcp'}
+
+
 def load_config():
     """Load configuration from file"""
     if config_file.exists():
@@ -242,6 +247,10 @@ def load_config():
             # Ensure compliance_mode field exists
             if 'compliance_mode' not in cfg:
                 cfg['compliance_mode'] = False
+            # Core servers are always enabled — migrate existing configs silently
+            for s in cfg.get('mcp_servers', []):
+                if s.get('id') in _ALWAYS_ON_SERVERS:
+                    s['enabled'] = True
             # Load GitHub Copilot token: .env takes priority over config.json
             for p in cfg.get('llm_providers', []):
                 if p['id'] == 'github_copilot':
