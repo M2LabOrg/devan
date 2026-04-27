@@ -73,7 +73,8 @@
           <p class="px-3 text-[11px] uppercase tracking-wider text-slate-400 font-semibold mb-2">Overview</p>
           <ul class="space-y-0.5 text-sm">
             <li><a class="nav-link block px-3 py-2 rounded-md text-slate-700 hover:bg-slate-100" href="#top">Home</a></li>
-            <li><a class="nav-link block px-3 py-2 rounded-md text-slate-700 hover:bg-slate-100" href="#quickstart">Quick start</a></li>
+            <li><a class="nav-link block px-3 py-2 rounded-md text-slate-700 hover:bg-slate-100" href="#agent">Run the Agent UI</a></li>
+            <li><a class="nav-link block px-3 py-2 rounded-md text-slate-700 hover:bg-slate-100" href="#quickstart">MCP framework</a></li>
             <li><a class="nav-link block px-3 py-2 rounded-md text-slate-700 hover:bg-slate-100" href="#architecture">Architecture</a></li>
           </ul>
         </div>
@@ -150,10 +151,53 @@
         </div>
       </section>
 
+      <!-- agent UI -->
+      <section id="agent" class="bg-white border-b border-slate-200">
+        <div class="max-w-5xl mx-auto px-6 lg:px-12 py-16">
+          <h2 class="text-3xl font-bold text-slate-900 mb-2">Run the Agent UI</h2>
+          <p class="text-slate-500 mb-8">DEVAN includes a full chat interface — a local web app that orchestrates all MCP servers with a knowledge base, citations, and document indexing. It requires <strong class="text-slate-700">Ollama</strong> for the local LLM.</p>
+
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-5">
+
+            <div class="rounded-xl border border-indigo-100 bg-indigo-50/50 p-6">
+              <h3 class="font-semibold text-base mb-1 text-slate-900">Prerequisite — Ollama</h3>
+              <p class="text-sm text-slate-500 mb-3">Ollama runs the LLM locally using your GPU (Apple Silicon · NVIDIA). Install it once — DEVAN connects to it automatically.</p>
+<pre class="text-[13px] leading-relaxed bg-slate-900 text-slate-100 rounded-md p-4 whitespace-pre-wrap break-words"><code>brew install ollama
+ollama pull gemma3:4b
+ollama serve</code></pre>
+              <p class="text-xs text-slate-400 mt-2">Any Ollama model works. <code class="font-mono text-xs">gemma3:4b</code> and <code class="font-mono text-xs">qwen3:8b</code> give the best tool-use results.</p>
+            </div>
+
+            <div class="rounded-xl border border-slate-200 p-6 bg-white">
+              <h3 class="font-semibold text-base mb-1 text-slate-900">Start DEVAN</h3>
+              <p class="text-sm text-slate-500 mb-3">With Ollama running, clone the repo and start the Docker stack. The app connects to your native Ollama automatically.</p>
+<pre class="text-[13px] leading-relaxed bg-slate-900 text-slate-100 rounded-md p-4 whitespace-pre-wrap break-words"><code>git clone https://github.com/M2LabOrg/devan.git
+cd devan
+make start
+# Open http://localhost:5001</code></pre>
+            </div>
+
+            <div class="rounded-xl border border-slate-200 p-6 bg-white lg:col-span-2">
+              <h3 class="font-semibold text-base mb-2 text-slate-900">How the stack fits together</h3>
+<pre class="text-[13px] leading-relaxed text-slate-600 whitespace-pre"><code>  Ollama (native, GPU)          ← runs on your Mac/PC, uses Metal / CUDA
+       ▲
+       │ localhost:11434
+       │
+  DEVAN Agent (Docker)          ← Flask + Socket.IO at localhost:5001
+       ├─ Document MCP           ← chunk PDF, Word, Excel, CSV
+       ├─ Indexer MCP            ← SQLite FTS5 RAG index (persistent)
+       └─ + 6 more MCP servers</code></pre>
+              <p class="text-xs text-slate-400 mt-3">Ollama runs natively so it can access your GPU. DEVAN's Docker container reaches it via <code class="font-mono text-xs">host.docker.internal:11434</code>. No data leaves your machine.</p>
+            </div>
+
+          </div>
+        </div>
+      </section>
+
       <!-- quick start -->
       <section id="quickstart" class="max-w-5xl mx-auto px-6 lg:px-12 py-16">
-        <h2 class="text-3xl font-bold text-slate-900 mb-2">Quick start</h2>
-        <p class="text-slate-500 mb-8">Clone the repo, pick a server, and connect it to your MCP host.</p>
+        <h2 class="text-3xl font-bold text-slate-900 mb-2">MCP framework</h2>
+        <p class="text-slate-500 mb-8">Use individual DEVAN servers directly in Claude Desktop, Claude Code, or any MCP-compatible host — no Ollama needed.</p>
 
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-5">
           <div class="rounded-xl border border-slate-200 p-6 bg-white">

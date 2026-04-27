@@ -2009,6 +2009,10 @@
     socket.on('connected', (data) => {
       console.log('Connected:', data.session_id);
       sessionId = data.session_id;
+      // Re-register KB session with the new socket sid on every (re)connect
+      if (_kbSessionId) {
+        socket.emit('set_index_session', { session_id: _kbSessionId });
+      }
     });
 
     // Thinking verbs rotation

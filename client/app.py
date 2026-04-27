@@ -1135,7 +1135,7 @@ def _call_llm_sync(provider: dict, model: str, messages: List[dict], tools=None)
         payload = {"model": model, "messages": messages, "stream": False}
         if tools:
             payload["tools"] = tools
-        resp = requests.post(url, json=payload, timeout=120)
+        resp = requests.post(url, json=payload, timeout=300)
         return resp.json()
     else:
         url = f"{provider['base_url'].rstrip('/')}/chat/completions"
@@ -1147,7 +1147,7 @@ def _call_llm_sync(provider: dict, model: str, messages: List[dict], tools=None)
         payload = {"model": model, "messages": messages, "max_tokens": 2048}
         if tools:
             payload["tools"] = tools
-        resp = requests.post(url, json=payload, headers=headers, timeout=120)
+        resp = requests.post(url, json=payload, headers=headers, timeout=300)
         return resp.json()
 
 
@@ -1281,8 +1281,7 @@ async def _agentic_loop(
             )
 
             if 'error' in response:
-                # Return as a tuple so the call-site unpacking never raises ValueError
-                return response, []
+                return response, [], []
 
             tool_calls = _extract_tool_calls(response, provider['type'])
 
@@ -1439,10 +1438,15 @@ def process_chat_message(sid: str, message: str, config: dict, request_id: str =
         if sid in index_sessions:
             kb_sid = index_sessions[sid]
             kb_context = (
-                f"A knowledge base is indexed under session_id=\"{kb_sid}\". "
-                "When the user asks questions about documents or data, call the "
-                f"`query` tool with session_id=\"{kb_sid}\" to retrieve cited answers. "
-                "Use `list_indexed_files` to see which files are in the index."
+                f"IMPORTANT: A knowledge base is active (session_id=\"{kb_sid}\"). "
+                "You MUST call the `query` tool BEFORE answering any question about documents, "
+                f"papers, files, or data. Always pass session_id=\"{kb_sid}\" to the query tool. "
+                "Do NOT answer from memory — retrieve from the knowledge base first. "
+                "Use `list_indexed_files` to see which files are indexed. "
+                "IMPORTANT: KB files are LOCAL files — they have no web URL. "
+                "Never fabricate or guess URLs. Cite sources using the file_name and source_ref "
+                "fields returned by the tool (e.g. 'report.pdf, page 3'). "
+                "If the user asks for links, explain that these are local files with no URL."
             )
             messages.append({'role': 'system', 'content': kb_context})
         
@@ -1527,18 +1531,23 @@ def process_chat_message(sid: str, message: str, config: dict, request_id: str =
             'citations': kb_citations if kb_citations else None,
         }, room=sid)
 
-    except Exception as e:
+    except BaseException as e:
         import traceback
-        # Unwrap ExceptionGroup (Python 3.11 TaskGroup errors) to show real cause
-        if hasattr(e, 'exceptions'):
-            inner_msgs = '; '.join(str(ex) for ex in e.exceptions)
-            logging.error(f"Chat TaskGroup error. Inner exceptions: {inner_msgs}\n{traceback.format_exc()}")
-            err_display = inner_msgs
+        logging.error(f"Chat error: {traceback.format_exc()}")
+        # Unwrap ExceptionGroup / BaseExceptionGroup (Python 3.11 TaskGroup / anyio)
+        inner = e
+        if hasattr(e, 'exceptions') and e.exceptions:
+            inner = e.exceptions[0]
+        # Surface a human-readable cause
+        import requests as _req
+        if isinstance(inner, _req.exceptions.ReadTimeout):
+            err_display = "The LLM timed out — it took too long to respond. Try a smaller model."
+        elif isinstance(inner, (_req.exceptions.ConnectionError, ConnectionRefusedError)):
+            err_display = "Cannot reach the LLM. Make sure 'ollama serve' is running."
         else:
-            logging.error(f"Chat error: {traceback.format_exc()}")
-            err_display = str(e)
+            err_display = str(inner) or str(e)
         socketio.emit('chat_response', {
-            'error': f'Error processing message: {err_display}',
+            'error': f'Error: {err_display}',
             'requestId': request_id
         }, room=sid)
 

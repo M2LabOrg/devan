@@ -7,54 +7,22 @@ services:
       - "${PORT:-5001}:5001"
     environment:
       - PORT=5001
-      - OLLAMA_HOST=http://ollama:11434
+      # Point to native Ollama on the Mac host — uses Apple GPU (Metal) automatically.
+      # Start it with: ollama serve   (in a separate terminal before make start)
+      - OLLAMA_HOST=http://host.docker.internal:11434
+      # Persist the RAG index across container restarts
+      - INDEXER_DB=/app/client/kb_data/indexer.db
       # Optional: set your GitHub Copilot PAT here (or in .env)
       # - github_copilot_token=your_token_here
     volumes:
-      # Persist user projects and logs outside the container
+      # Persist user projects, logs, and KB index outside the container
       - ./client/projects:/app/client/projects
       - ./client/logs:/app/client/logs
+      - ./client/kb_data:/app/client/kb_data
       # Mount host home directory read-only so users can index any local folder.
       # Inside the container, host paths appear under /host/home/.
       # Example: ~/Documents/reports → /host/home/Documents/reports
       - ~/:/host/home:ro
       # Mount external volumes (LaCie and other /Volumes drives)
       - /Volumes:/host/volumes:ro
-    depends_on:
-      ollama:
-        condition: service_healthy
     restart: unless-stopped
-
-  # ── Ollama — local LLM runtime ──────────────────────────────────────────────
-  ollama:
-    image: ollama/ollama:latest
-    # Port is intentionally not exposed to the host — the app container
-    # reaches Ollama via the internal Docker network (http://ollama:11434).
-    # This also avoids conflicts if Ollama is already running natively.
-    volumes:
-      - ollama_data:/root/.ollama
-    healthcheck:
-      test: ["CMD", "ollama", "list"]
-      interval: 10s
-      timeout: 5s
-      retries: 10
-      start_period: 10s
-    restart: unless-stopped
-
-  # ── One-shot init: pulls the chosen model into the shared volume ─────────────
-  # Runs once on `docker compose up`; skips if model is already cached.
-  ollama-init:
-    image: ollama/ollama:latest
-    volumes:
-      - ollama_data:/root/.ollama
-    environment:
-      - OLLAMA_HOST=http://ollama:11434
-      - OLLAMA_MODEL=${OLLAMA_MODEL:-llama3.2:3b}
-    depends_on:
-      ollama:
-        condition: service_healthy
-    entrypoint: ["/bin/sh", "-c", "ollama pull $OLLAMA_MODEL"]
-    restart: "no"
-
-volumes:
-  ollama_data:
