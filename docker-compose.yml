@@ -10,6 +10,8 @@ services:
       # Point to native Ollama on the Mac host — uses Apple GPU (Metal) automatically.
       # Start it with: ollama serve   (in a separate terminal before make start)
       - OLLAMA_HOST=http://host.docker.internal:11434
+      # Host home path — lets the app translate container paths back to host paths for citations
+      - HOST_HOME=${HOME}
       # Persist the RAG index across container restarts
       - INDEXER_DB=/app/client/kb_data/indexer.db
       # Optional: set your GitHub Copilot PAT here (or in .env)

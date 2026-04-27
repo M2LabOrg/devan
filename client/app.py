@@ -1179,6 +1179,16 @@ def _extract_tool_calls(response: dict, provider_type: str) -> List[dict]:
     return calls
 
 
+def _docker_to_host_path(docker_path: str) -> str:
+    """Translate a container-internal path to the equivalent host path."""
+    host_home = os.environ.get('HOST_HOME', '')
+    if docker_path.startswith('/host/home/') and host_home:
+        return host_home + '/' + docker_path[len('/host/home/'):]
+    if docker_path.startswith('/host/volumes/'):
+        return '/Volumes/' + docker_path[len('/host/volumes/'):]
+    return docker_path
+
+
 def _get_response_text(response: dict, provider_type: str) -> str:
     """Extract the final text content from an LLM response."""
     if provider_type == 'ollama':
@@ -1324,6 +1334,8 @@ async def _agentic_loop(
                         if tool_name == 'query':
                             try:
                                 parsed = json.loads(result_text)
+                                for c in parsed.get('citations', []):
+                                    c['host_path'] = _docker_to_host_path(c.get('file_path', ''))
                                 kb_citations.extend(parsed.get('citations', []))
                             except (json.JSONDecodeError, AttributeError):
                                 pass
@@ -1443,10 +1455,10 @@ def process_chat_message(sid: str, message: str, config: dict, request_id: str =
                 f"papers, files, or data. Always pass session_id=\"{kb_sid}\" to the query tool. "
                 "Do NOT answer from memory — retrieve from the knowledge base first. "
                 "Use `list_indexed_files` to see which files are indexed. "
-                "IMPORTANT: KB files are LOCAL files — they have no web URL. "
-                "Never fabricate or guess URLs. Cite sources using the file_name and source_ref "
-                "fields returned by the tool (e.g. 'report.pdf, page 3'). "
-                "If the user asks for links, explain that these are local files with no URL."
+                "When citing sources, use [1], [2], [3] notation inline in your answer — "
+                "e.g. 'Revenue grew 7% [1].' The UI will render a clickable Sources footer automatically. "
+                "Do NOT write a 'References:' section yourself. "
+                "KB files are LOCAL — never fabricate web URLs."
             )
             messages.append({'role': 'system', 'content': kb_context})
         

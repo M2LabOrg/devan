@@ -575,6 +575,8 @@
     /* Citation sources footer */
     .msg-citations{margin-top:.6rem;border-top:1px solid var(--glass-border);padding-top:.5rem}
     .msg-citations-label{font-size:.6rem;font-weight:600;color:var(--ink-muted);letter-spacing:.1em;text-transform:uppercase;margin-bottom:.35rem}
+    .cite-copy-btn{margin-left:.5rem;padding:1px 7px;font-size:.68rem;border:1px solid var(--glass-border);border-radius:4px;background:transparent;color:var(--ink-muted);cursor:pointer;transition:background .15s,color .15s}
+    .cite-copy-btn:hover{background:var(--surface-2);color:var(--ink)}
     .msg-citation-item{display:flex;gap:.5rem;align-items:baseline;font-size:.7rem;color:var(--ink-muted);line-height:1.4;padding:.2rem 0}
     .msg-citation-num{font-weight:600;color:var(--accent);flex-shrink:0;min-width:1.2rem}
     .msg-citation-ref{font-weight:500;color:var(--ink-light)}
@@ -2112,9 +2114,11 @@
         const c = citations[idx];
         const ref = [c.file_name, c.source_ref].filter(Boolean).join(' — ');
         const excerpt = c.excerpt ? c.excerpt.slice(0, 160) + (c.excerpt.length > 160 ? '…' : '') : '';
+        const hostPath = c.host_path || c.file_path || '';
+        const copyBtn = hostPath ? `<button class="cite-copy-btn" title="${escapeHtml(hostPath)}" onclick="navigator.clipboard.writeText(${JSON.stringify(hostPath)}).then(()=>{this.textContent='✓';setTimeout(()=>this.textContent='Copy path',1500)})">Copy path</button>` : '';
         return `<div class="msg-citation-item">
           <span class="msg-citation-num">[${idx + 1}]</span>
-          <span><span class="msg-citation-ref">${escapeHtml(ref)}</span>${excerpt ? `<span class="msg-citation-excerpt"> ${escapeHtml(excerpt)}</span>` : ''}</span>
+          <span><span class="msg-citation-ref">${escapeHtml(ref)}</span>${excerpt ? `<span class="msg-citation-excerpt"> ${escapeHtml(excerpt)}</span>` : ''}${copyBtn}</span>
         </div>`;
       }).join('');
 
