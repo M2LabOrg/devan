@@ -2263,7 +2263,7 @@
         <div class="msg-bubble">
           <div class="sys-card ${status}">
             ${icons[status] || icons.info}
-            <span>${message}</span>
+            <span>${typeof marked !== 'undefined' ? marked.parseInline(message) : message}</span>
           </div>
         </div>
       `;
