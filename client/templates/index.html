@@ -3054,6 +3054,7 @@
             _hasProjects = true;
             updateProjectPill();
             await restoreScrapeTrackerFromServer();
+            _restoreKbFromProject(currentProject);
             return;
           }
         }
@@ -3077,6 +3078,7 @@
           const selData = await selResp.json();
           if (selResp.ok && selData.project) {
             currentProject = selData.project;
+            _restoreKbFromProject(currentProject);
           }
         }
         updateProjectPill();
@@ -3092,6 +3094,18 @@
     // ══════════════════════════════════
 
     let _kbSessionId = null;
+
+    function _restoreKbFromProject(project) {
+      if (!project?.kb_session_id) return;
+      if (_kbSessionId === project.kb_session_id) return; // already active
+      _kbSessionId = project.kb_session_id;
+      updateKbPill();
+      // emit only if socket is already connected; the `connected` handler will
+      // re-emit on the next (re)connect via the _kbSessionId check
+      if (socket.connected) {
+        socket.emit('set_index_session', { session_id: _kbSessionId });
+      }
+    }
 
     function openKbModal() {
       const existing = document.getElementById('kbModal');
