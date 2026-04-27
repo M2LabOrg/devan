@@ -265,14 +265,36 @@ def save_config(config):
         json.dump(config, f, indent=2)
 
 
+def _ollama_model_supports_tools(base_url: str, model_name: str) -> bool:
+    """Return True if Ollama reports 'tools' in this model's capabilities."""
+    try:
+        r = requests.post(f"{base_url}/api/show", json={"model": model_name}, timeout=3)
+        if r.status_code == 200:
+            caps = r.json().get("capabilities", [])
+            return "tools" in caps
+    except Exception:
+        pass
+    return False
+
+
 def check_ollama_available():
-    """Check if Ollama is running and get available models"""
+    """Check if Ollama is running and return only tool-capable models."""
     try:
         base_url = os.environ.get("OLLAMA_HOST", "http://localhost:11434").rstrip("/")
         response = requests.get(f"{base_url}/api/tags", timeout=2)
         if response.status_code == 200:
-            models = [m['name'] for m in response.json().get('models', [])]
-            return True, models
+            all_models = [m['name'] for m in response.json().get('models', [])]
+            # Filter to models that support tool use (MCP requires it)
+            from concurrent.futures import ThreadPoolExecutor, as_completed
+            tool_models = []
+            with ThreadPoolExecutor(max_workers=6) as pool:
+                futures = {pool.submit(_ollama_model_supports_tools, base_url, m): m for m in all_models}
+                for fut in as_completed(futures):
+                    if fut.result():
+                        tool_models.append(futures[fut])
+            # Preserve original order
+            ordered = [m for m in all_models if m in tool_models]
+            return True, ordered
     except Exception:
         pass
     return False, []
