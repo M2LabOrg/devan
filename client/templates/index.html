@@ -2100,7 +2100,7 @@
     function renderCitations(content, citations) {
       if (!citations || !citations.length) return { html: content, footer: '' };
 
-      // Replace [N] markers with superscript spans
+      // Replace [N] markers with superscript spans, track which are cited inline
       const cited = new Set();
       const html = content.replace(/\[(\d+)\]/g, (_, n) => {
         const idx = parseInt(n, 10) - 1;
@@ -2108,19 +2108,32 @@
         return `<sup class="cite-ref">[${n}]</sup>`;
       });
 
-      if (!cited.size) return { html, footer: '' };
+      // Always show all retrieved citations — even if the model skipped [N] notation
+      const indicesToShow = cited.size
+        ? [...cited].sort((a, b) => a - b)
+        : citations.map((_, i) => i);
 
-      const items = [...cited].sort((a, b) => a - b).map(idx => {
+      // Deduplicate by file_name so the same file doesn't appear multiple times
+      const seen = new Set();
+      const items = indicesToShow.filter(idx => {
+        const key = citations[idx]?.file_name || idx;
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      }).map((idx, displayIdx) => {
         const c = citations[idx];
         const ref = [c.file_name, c.source_ref].filter(Boolean).join(' — ');
         const excerpt = c.excerpt ? c.excerpt.slice(0, 160) + (c.excerpt.length > 160 ? '…' : '') : '';
         const hostPath = c.host_path || c.file_path || '';
         const copyBtn = hostPath ? `<button class="cite-copy-btn" title="${escapeHtml(hostPath)}" onclick="navigator.clipboard.writeText(${JSON.stringify(hostPath)}).then(()=>{this.textContent='✓';setTimeout(()=>this.textContent='Copy path',1500)})">Copy path</button>` : '';
+        const label = cited.size ? idx + 1 : displayIdx + 1;
         return `<div class="msg-citation-item">
-          <span class="msg-citation-num">[${idx + 1}]</span>
+          <span class="msg-citation-num">[${label}]</span>
           <span><span class="msg-citation-ref">${escapeHtml(ref)}</span>${excerpt ? `<span class="msg-citation-excerpt"> ${escapeHtml(excerpt)}</span>` : ''}${copyBtn}</span>
         </div>`;
       }).join('');
+
+      if (!items) return { html, footer: '' };
 
       const footer = `<div class="msg-citations">
         <div class="msg-citations-label">Sources</div>
