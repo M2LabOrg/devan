@@ -22,7 +22,7 @@ docling = [
     "docling>=2.91.0",
 ]
 opensearch = [
-    "opensearch-py>=3.1.0",
+    "opensearch-py>=3.2.0",
 ]
 parquet = [
     "pyarrow>=24.0.0",
