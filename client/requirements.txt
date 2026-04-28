@@ -6,5 +6,5 @@ mcp>=1.27.0
 python-dotenv>=1.2.2
 httpx>=0.28.1
 python-docx>=1.2.0
-pypdf>=4.0.0
-openpyxl>=3.1.0
+pypdf>=6.10.2
+openpyxl>=3.1.5
